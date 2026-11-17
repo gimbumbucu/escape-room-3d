@@ -10,6 +10,54 @@ window.Game3D = (function() {
   let roomObjects = []; // 인터랙티브 3D 오브젝트 목록
   let placedFurnitures = []; // 제작되어 방에 배치된 가구들
   let nearbyObject = null; // 현재 접근 중인 오브젝트
+  let colliders = []; // 사물/가구 통과 방지 충돌체 목록 (Colliders)
+
+  // 사물 통과 방지 충돌체 헬퍼
+  function addBoxCollider(x, z, width, depth) {
+    colliders.push({
+      type: 'box',
+      minX: x - width / 2,
+      maxX: x + width / 2,
+      minZ: z - depth / 2,
+      maxZ: z + depth / 2
+    });
+  }
+
+  function addCircleCollider(x, z, radius) {
+    colliders.push({
+      type: 'circle',
+      x: x,
+      z: z,
+      radius: radius
+    });
+  }
+
+  // 플레이어와 사물 간 충돌 감지 (radius = 0.45)
+  function isColliding(x, z, radius = 0.45) {
+    // 1. 방 외벽 경계 (-10.5 ~ 10.5)
+    if (x - radius < -10.5 || x + radius > 10.5 || z - radius < -10.5 || z + radius > 10.5) {
+      return true;
+    }
+
+    // 2. 사물 및 가구 충돌 검사
+    for (let i = 0; i < colliders.length; i++) {
+      const c = colliders[i];
+      if (c.type === 'box') {
+        if (x + radius > c.minX && x - radius < c.maxX && z + radius > c.minZ && z - radius < c.maxZ) {
+          return true;
+        }
+      } else if (c.type === 'circle') {
+        const dx = x - c.x;
+        const dz = z - c.z;
+        const distSq = dx * dx + dz * dz;
+        const minDist = radius + c.radius;
+        if (distSq < minDist * minDist) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   // 캐릭터 이동 및 물리 관련 변수
   const moveState = {
@@ -164,6 +212,7 @@ window.Game3D = (function() {
 
     roomGroup = new THREE.Group();
     roomObjects = [];
+    colliders = [];
 
     // 조명 색상 테마 동기화
     pointLight.color.setHex(theme.lightColor);
@@ -434,6 +483,13 @@ window.Game3D = (function() {
       }
     }
     roomGroup.add(shelfGroup);
+
+    // 서가 충돌체 등록
+    if (Math.abs(rotY) < 0.1) {
+      addBoxCollider(x, z, 3.2, 1.0);
+    } else {
+      addBoxCollider(x, z, 1.0, 3.2);
+    }
   }
 
   function createGlobe(x, y, z) {
@@ -455,6 +511,7 @@ window.Game3D = (function() {
     gGroup.add(sphere);
 
     roomGroup.add(gGroup);
+    addCircleCollider(x, z, 1.0);
   }
 
   function createReadingDesk(x, y, z) {
@@ -477,6 +534,7 @@ window.Game3D = (function() {
     dGroup.add(openBook);
 
     roomGroup.add(dGroup);
+    addBoxCollider(x, z, 2.6, 1.6);
   }
 
   function createLabBench(x, y, z) {
@@ -500,6 +558,7 @@ window.Game3D = (function() {
     bGroup.add(flask);
 
     roomGroup.add(bGroup);
+    addBoxCollider(x, z, 3.8, 1.8);
   }
 
   function createBlackboard(x, y, z) {
@@ -508,6 +567,7 @@ window.Game3D = (function() {
     const board = new THREE.Mesh(bGeo, bMat);
     board.position.set(x, y, z);
     roomGroup.add(board);
+    addBoxCollider(x, z, 8.2, 0.6);
   }
 
   function createMicroscope(x, y, z) {
@@ -530,6 +590,7 @@ window.Game3D = (function() {
     mGroup.add(tube);
 
     roomGroup.add(mGroup);
+    addCircleCollider(x, z, 0.9);
   }
 
   function createMuseumPillars() {
@@ -540,6 +601,7 @@ window.Game3D = (function() {
         pillar.position.set(px, 3.5, pz);
         pillar.castShadow = true;
         roomGroup.add(pillar);
+        addCircleCollider(px, pz, 0.8);
       });
     });
   }
@@ -566,6 +628,7 @@ window.Game3D = (function() {
     dGroup.add(skull);
 
     roomGroup.add(dGroup);
+    addBoxCollider(x, z, 4.4, 2.8);
   }
 
   function createAncientRelic(x, y, z) {
@@ -575,6 +638,7 @@ window.Game3D = (function() {
     );
     relic.position.set(x, 1.25, z);
     roomGroup.add(relic);
+    addCircleCollider(x, z, 0.9);
   }
 
   function createTreasureChest(x, y, z) {
@@ -590,6 +654,7 @@ window.Game3D = (function() {
     cGroup.add(chest);
 
     roomGroup.add(cGroup);
+    addBoxCollider(x, z, 1.8, 1.4);
   }
 
   function createFurnace(x, y, z) {
@@ -612,6 +677,7 @@ window.Game3D = (function() {
     fGroup.add(fire);
 
     roomGroup.add(fGroup);
+    addBoxCollider(x, z, 2.8, 2.8);
   }
 
   function createWorkbench(x, y, z) {
@@ -627,6 +693,7 @@ window.Game3D = (function() {
     wGroup.add(bench);
 
     roomGroup.add(wGroup);
+    addBoxCollider(x, z, 3.3, 2.0);
   }
 
   function createToolBox(x, y, z) {
@@ -636,6 +703,7 @@ window.Game3D = (function() {
     );
     box.position.set(x, 0.4, z);
     roomGroup.add(box);
+    addBoxCollider(x, z, 1.4, 1.0);
   }
 
   // -------------------------------------------------------------
@@ -767,6 +835,7 @@ window.Game3D = (function() {
     }
 
     roomGroup.add(fGroup);
+    addBoxCollider(pos.x, pos.z, 1.2, 1.2);
   }
 
   // -------------------------------------------------------------
@@ -1601,12 +1670,20 @@ window.Game3D = (function() {
         const normZ = moveZ / (inputLen || 1);
 
         const currentSpeed = (keysDown['ShiftLeft'] || moveState.isRunning) ? 8.0 : 5.0;
-        playerMesh.position.x += normX * currentSpeed * delta;
-        playerMesh.position.z += normZ * currentSpeed * delta;
+        const stepX = normX * currentSpeed * delta;
+        const stepZ = normZ * currentSpeed * delta;
 
-        // 벽 경계 충돌 처리 (-11 ~ 11)
-        playerMesh.position.x = Math.max(-10.5, Math.min(10.5, playerMesh.position.x));
-        playerMesh.position.z = Math.max(-10.5, Math.min(10.5, playerMesh.position.z));
+        // X축 이동 시도 (사물/가구 통과 방지 & 부드러운 미끄러짐)
+        const nextX = playerMesh.position.x + stepX;
+        if (!isColliding(nextX, playerMesh.position.z)) {
+          playerMesh.position.x = nextX;
+        }
+
+        // Z축 이동 시도 (사물/가구 통과 방지 & 부드러운 미끄러짐)
+        const nextZ = playerMesh.position.z + stepZ;
+        if (!isColliding(playerMesh.position.x, nextZ)) {
+          playerMesh.position.z = nextZ;
+        }
 
         // 캐릭터 진행 방향 회전
         const targetAngle = Math.atan2(normX, normZ);
