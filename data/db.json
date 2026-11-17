@@ -457,17 +457,14 @@
       "studentNum": "7",
       "name": "김지훈",
       "character": "char_girl_2",
-      "score": 245,
-      "wood": 4,
-      "metal": 2,
+      "score": 0,
+      "wood": 0,
+      "metal": 0,
       "craftedFurnitures": [],
-      "solvedQuestions": [
-        3,
-        1
-      ],
-      "escaped": true,
+      "solvedQuestions": [],
+      "escaped": false,
       "startedAt": "2026-11-17T09:36:55.765Z",
-      "escapedAt": "2026-11-17T09:37:31.550Z"
+      "escapedAt": null
     }
   ]
 }

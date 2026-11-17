@@ -13,27 +13,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// DB 로드 / 저장 헬퍼
+let memoryDB = null;
+
+// DB 로드 / 저장 헬퍼 (로컬 파일 + Vercel 서버리스 메모리 캐시 지원)
 function loadDB() {
+  if (memoryDB) return memoryDB;
   try {
-    if (!fs.existsSync(DB_FILE)) {
-      return { settings: {}, furnitures: [], rooms: [], questions: [], students: [] };
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      memoryDB = JSON.parse(data);
+      return memoryDB;
     }
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
   } catch (err) {
-    console.error('DB Load Error:', err);
-    return { settings: {}, furnitures: [], rooms: [], questions: [], students: [] };
+    console.warn('DB Load Warning:', err.message);
   }
+  return { settings: {}, furnitures: [], rooms: [], questions: [], students: [] };
 }
 
 function saveDB(db) {
+  memoryDB = db;
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
     return true;
   } catch (err) {
-    console.error('DB Save Error:', err);
-    return false;
+    // Vercel 등 읽기 전용 서버리스 환경에서는 메모리 DB로 안전하게 유지
+    return true;
   }
 }
 
@@ -493,13 +497,17 @@ app.get('/api/qrcode', async (req, res) => {
   }
 });
 
-// 서버 기동
-app.listen(PORT, '0.0.0.0', () => {
-  const localIP = getLocalIP();
-  console.log(`===============================================`);
-  console.log(`🎮 3D 방탈출 게임 서버가 시작되었습니다!`);
-  console.log(`- 로컬 접속:   http://localhost:${PORT}`);
-  console.log(`- 모바일/QR접속: http://${localIP}:${PORT}`);
-  console.log(`- 관리자 초기 비밀번호: 1212`);
-  console.log(`===============================================`);
-});
+// 서버 기동 (로컬 실행 시에만 포트 리슨, Vercel 서버리스 시 module.exports 사용)
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    const localIP = getLocalIP();
+    console.log(`===============================================`);
+    console.log(`🎮 3D 방탈출 게임 서버가 시작되었습니다!`);
+    console.log(`- 로컬 접속:   http://localhost:${PORT}`);
+    console.log(`- 모바일/QR접속: http://${localIP}:${PORT}`);
+    console.log(`- 관리자 초기 비밀번호: 1212`);
+    console.log(`===============================================`);
+  });
+}
+
+module.exports = app;
