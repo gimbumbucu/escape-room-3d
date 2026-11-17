@@ -126,6 +126,12 @@ window.Admin = (function () {
       btnResetStudents.addEventListener('click', handleResetStudents);
     }
 
+    // 랭킹 전체 초기화 버튼
+    const btnResetRanking = document.getElementById('btn-reset-ranking');
+    if (btnResetRanking) {
+      btnResetRanking.addEventListener('click', handleResetStudents);
+    }
+
     // 게임 일반 설정 폼 제출
     const formSettings = document.getElementById('form-admin-general-settings');
     if (formSettings) {
@@ -617,8 +623,12 @@ window.Admin = (function () {
         const res = await fetch('/api/admin/students', { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
-          alert(data.message);
+          alert('✅ ' + data.message);
           await loadStudents();
+          await loadRanking();
+          if (window.App && window.App.loadRankingData) {
+            window.App.loadRankingData();
+          }
         }
       } catch (err) {
         console.error(err);
