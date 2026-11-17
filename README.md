@@ -83,10 +83,30 @@ npm start
 
 ## 🌐 서버 배포 가이드 (Deployment Guide)
 
-다른 사람이나 학생들에게 실제 웹 링크로 서비스하기 위한 3가지 대표 배포 방법입니다.
+다른 사람이나 학생들에게 실제 웹 링크로 서비스하기 위한 대표 배포 방법입니다.
 
-### 방법 1. 클라우드 무료 배포 (Render.com) - ⭐ 가장 추천!
-GitHub 레포지토리를 만들고 Render에 연결하면 **무료 HTTPS 주소**가 생성되어 누구나 접속할 수 있습니다.
+### 방법 1. Vercel(버셀) 원클릭 무료 배포 - ⭐ 초간단!
+본 프로젝트에는 Vercel 서버리스 배포를 위한 `vercel.json` 및 `api/index.js` 설정이 완벽하게 내장되어 있습니다.
+
+#### 옵션 A: 터미널에서 바로 배포 (Vercel CLI)
+터미널에서 아래 명령어를 입력하고 엔터 몇 번만 치면 1분 만에 `https://...vercel.app` 주소가 생성됩니다:
+```bash
+npx vercel
+```
+- 로그인 안내가 뜨면 웹 브라우저에서 승인(Login)
+- `Set up and deploy?` ➔ `y` (엔터)
+- 이후 나오는 질문들은 모두 `Enter`만 누르면 배포 완료!
+
+#### 옵션 B: GitHub 연동 자동 배포
+1. 본 코드를 GitHub 레포지토리에 Push합니다.
+2. [Vercel.com](https://vercel.com)에 로그인 후 **[Add New...] ➔ [Project]** 클릭
+3. 내 GitHub 레포지토리를 **[Import]** 하고 **[Deploy]** 클릭!
+4. 푸시할 때마다 자동으로 최신 버전이 실시간 배포됩니다.
+
+---
+
+### 방법 2. 클라우드 상시 가동 배포 (Render.com)
+GitHub 레포지토리를 만들고 Render에 연결하면 **상시 가동 무료 HTTPS 주소**가 생성되어 누구나 접속할 수 있습니다.
 
 1. **GitHub에 본 코드를 Push합니다.**
 2. [Render.com](https://render.com)에 로그인 후 **[New +] -> [Web Service]**를 클릭합니다.
