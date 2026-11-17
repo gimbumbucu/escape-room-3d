@@ -1,0 +1,473 @@
+{
+  "settings": {
+    "adminPassword": "1212",
+    "activeQuestionCount": 8,
+    "escapeRequiredFurnitures": 2,
+    "basePointsPerAnswer": 20,
+    "materialsPerAnswer": {
+      "wood": 1,
+      "metal": 1
+    },
+    "siteTitle": "중학교 3D 방탈출 아카데미"
+  },
+  "furnitures": [
+    {
+      "id": "furn_chair",
+      "name": "나무 의자",
+      "cost": {
+        "wood": 2,
+        "metal": 0
+      },
+      "score": 50,
+      "icon": "🪑",
+      "description": "편안하게 쉴 수 있는 튼튼한 원목 의자",
+      "modelType": "chair"
+    },
+    {
+      "id": "furn_desk",
+      "name": "나무 책상",
+      "cost": {
+        "wood": 3,
+        "metal": 1
+      },
+      "score": 70,
+      "icon": "🪵",
+      "description": "다양한 연구와 공부를 할 수 있는 넓은 책상",
+      "modelType": "desk"
+    },
+    {
+      "id": "furn_shelf",
+      "name": "금속 선반",
+      "cost": {
+        "wood": 1,
+        "metal": 3
+      },
+      "score": 80,
+      "icon": "🗄️",
+      "description": "수많은 연구 재료와 도구를 정리하는 견고한 선반",
+      "modelType": "shelf"
+    },
+    {
+      "id": "furn_cabinet",
+      "name": "보물 수납장",
+      "cost": {
+        "wood": 3,
+        "metal": 2
+      },
+      "score": 100,
+      "icon": "📦",
+      "description": "비밀 열쇠와 중요한 보물을 보관하는 수납장",
+      "modelType": "cabinet"
+    },
+    {
+      "id": "furn_lab_table",
+      "name": "연금술 실험대",
+      "cost": {
+        "wood": 4,
+        "metal": 4
+      },
+      "score": 150,
+      "icon": "⚗️",
+      "description": "탈출의 최종 비약을 정제할 수 있는 최첨단 실험대",
+      "modelType": "lab_table"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "room_1",
+      "name": "1번 방 - 도서관",
+      "theme": "library",
+      "color": "#3d2817",
+      "ambientColor": "#ffe3bc",
+      "description": "고대 지혜의 서적들이 가득한 신비로운 도서관입니다."
+    },
+    {
+      "id": "room_2",
+      "name": "2번 방 - 과학실",
+      "theme": "laboratory",
+      "color": "#16283d",
+      "ambientColor": "#bce5ff",
+      "description": "푸른 화학 반응과 신비한 실험 장비가 가동 중인 과학실입니다."
+    },
+    {
+      "id": "room_3",
+      "name": "3번 방 - 박물관",
+      "theme": "museum",
+      "color": "#2c1d3a",
+      "ambientColor": "#edd9ff",
+      "description": "거대한 화석과 역사의 유물들이 전시된 고요한 박물관입니다."
+    },
+    {
+      "id": "room_4",
+      "name": "4번 방 - 공방",
+      "theme": "workshop",
+      "color": "#38291f",
+      "ambientColor": "#ffddaa",
+      "description": "뜨거운 제련 화로와 톱, 망치 소리가 머무는 제작 공방입니다."
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "roomId": "room_1",
+      "title": "도서관의 숨겨진 책장",
+      "question": "다음 중 빛의 삼원색에 해당하지 않는 것은 무엇일까요?",
+      "options": [
+        "빨강(Red)",
+        "초록(Green)",
+        "파랑(Blue)",
+        "노랑(Yellow)"
+      ],
+      "answerIndex": 3,
+      "points": 20,
+      "rewardWood": 2,
+      "rewardMetal": 1,
+      "hint": "빛의 3원색은 RGB입니다.",
+      "active": true
+    },
+    {
+      "id": 2,
+      "roomId": "room_1",
+      "title": "고대 천문 관측의 수수께끼",
+      "question": "태양계에서 가장 큰 행성은 무엇일까요?",
+      "options": [
+        "지구",
+        "화성",
+        "목성",
+        "토성"
+      ],
+      "answerIndex": 2,
+      "points": 25,
+      "rewardWood": 1,
+      "rewardMetal": 2,
+      "hint": "거대한 가스 행성이며 대적반이 있습니다.",
+      "active": true
+    },
+    {
+      "id": 3,
+      "roomId": "room_1",
+      "title": "도서관 암호 책자",
+      "question": "피타고라스 정리에 따르면 직각삼각형에서 빗변의 제곱은 다른 두 변의...?",
+      "options": [
+        "합의 제곱과 같다",
+        "각각의 제곱의 합과 같다",
+        "차이의 제곱과 같다",
+        "곱과 같다"
+      ],
+      "answerIndex": 1,
+      "points": 25,
+      "rewardWood": 2,
+      "rewardMetal": 1,
+      "hint": "a² + b² = c² 공식을 떠올려 보세요.",
+      "active": true
+    },
+    {
+      "id": 4,
+      "roomId": "room_2",
+      "title": "화학 실험대의 시험관",
+      "question": "물의 화학식(분자식)으로 올바른 것은 무엇일까요?",
+      "options": [
+        "CO2",
+        "H2O",
+        "NaCl",
+        "CH4"
+      ],
+      "answerIndex": 1,
+      "points": 20,
+      "rewardWood": 1,
+      "rewardMetal": 2,
+      "hint": "수소 2원자와 산소 1원자로 이루어져 있습니다.",
+      "active": true
+    },
+    {
+      "id": 5,
+      "roomId": "room_2",
+      "title": "과학실 비밀 칠판",
+      "question": "지구 대기 중에서 가장 많은 부피 비율을 차지하는 기체는?",
+      "options": [
+        "산소",
+        "이산화탄소",
+        "질소",
+        "수소"
+      ],
+      "answerIndex": 2,
+      "points": 25,
+      "rewardWood": 2,
+      "rewardMetal": 2,
+      "hint": "대기의 약 78%를 차지하고 있습니다.",
+      "active": true
+    },
+    {
+      "id": 6,
+      "roomId": "room_2",
+      "title": "정밀 현미경의 렌즈",
+      "question": "식물 세포에만 있고 동물 세포에는 없는 대표적인 구조는?",
+      "options": [
+        "세포막",
+        "핵",
+        "미토콘드리아",
+        "세포벽"
+      ],
+      "answerIndex": 3,
+      "points": 30,
+      "rewardWood": 2,
+      "rewardMetal": 2,
+      "hint": "식물 세포를 단단하게 지탱해 줍니다.",
+      "active": true
+    },
+    {
+      "id": 7,
+      "roomId": "room_3",
+      "title": "공룡 화석 표본대",
+      "question": "중생대 쥐라기와 백악기에 번성했던 거대한 파충류 무리는?",
+      "options": [
+        "삼엽충",
+        "공룡",
+        "매머드",
+        "암모나이트"
+      ],
+      "answerIndex": 1,
+      "points": 20,
+      "rewardWood": 1,
+      "rewardMetal": 3,
+      "hint": "티라노사우루스, 트리케라톱스가 대표적입니다.",
+      "active": true
+    },
+    {
+      "id": 8,
+      "roomId": "room_3",
+      "title": "고대 석조 유적 판독",
+      "question": "훈민정음을 창제하신 조선의 위대한 왕은 누구일까요?",
+      "options": [
+        "태조",
+        "세종대왕",
+        "영조",
+        "정조"
+      ],
+      "answerIndex": 1,
+      "points": 20,
+      "rewardWood": 3,
+      "rewardMetal": 1,
+      "hint": "집현전 학사들과 함께 한글을 만드셨습니다.",
+      "active": true
+    },
+    {
+      "id": 9,
+      "roomId": "room_3",
+      "title": "박물관 비밀 금고",
+      "question": "우리나라 국보 제1호로 지정되었던 조선시대 서울 도성의 정문은?",
+      "options": [
+        "흥인지문",
+        "숭례문(남대문)",
+        "숙정문",
+        "돈화문"
+      ],
+      "answerIndex": 1,
+      "points": 25,
+      "rewardWood": 2,
+      "rewardMetal": 2,
+      "hint": "서울 중구에 위치한 남쪽의 정문입니다.",
+      "active": false
+    },
+    {
+      "id": 10,
+      "roomId": "room_4",
+      "title": "공방 제련 화로",
+      "question": "철(Fe)을 녹이거나 형태를 가공할 때 열을 가하는 과정을 무엇이라 할까요?",
+      "options": [
+        "풍화",
+        "단조/제련",
+        "승화",
+        "기화"
+      ],
+      "answerIndex": 1,
+      "points": 25,
+      "rewardWood": 1,
+      "rewardMetal": 3,
+      "hint": "대장간에서 불에 달군 쇠를 망치로 두드리는 과정입니다.",
+      "active": false
+    },
+    {
+      "id": 11,
+      "roomId": "room_4",
+      "title": "목공 선반과 줄자",
+      "question": "직사각형의 넓이를 구하는 공식은?",
+      "options": [
+        "가로 × 세로",
+        "(가로 + 세로) × 2",
+        "가로 ÷ 세로",
+        "가로 × 세로 ÷ 2"
+      ],
+      "answerIndex": 0,
+      "points": 20,
+      "rewardWood": 3,
+      "rewardMetal": 1,
+      "hint": "두 변의 길이를 곱합니다.",
+      "active": false
+    },
+    {
+      "id": 12,
+      "roomId": "room_4",
+      "title": "장인의 부품 상자",
+      "question": "전기를 잘 통하게 하는 물질을 무엇이라고 부를까요?",
+      "options": [
+        "부도체",
+        "도체",
+        "절연체",
+        "반도체"
+      ],
+      "answerIndex": 1,
+      "points": 25,
+      "rewardWood": 2,
+      "rewardMetal": 3,
+      "hint": "구리, 금, 철 같은 금속 물질이 대표적입니다.",
+      "active": false
+    }
+  ],
+  "students": [
+    {
+      "id": "st_01",
+      "grade": "1",
+      "classNum": "1",
+      "studentNum": "12",
+      "name": "김지훈",
+      "character": "char_boy_1",
+      "score": 1250,
+      "wood": 4,
+      "metal": 3,
+      "craftedFurnitures": [
+        "나무 의자",
+        "나무 책상",
+        "수납장",
+        "연금술 실험대"
+      ],
+      "solvedQuestions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "escaped": true,
+      "escapedAt": "2026-11-17T15:30:12.000Z"
+    },
+    {
+      "id": "st_02",
+      "grade": "1",
+      "classNum": "2",
+      "studentNum": "05",
+      "name": "이준우",
+      "character": "char_boy_2",
+      "score": 1180,
+      "wood": 2,
+      "metal": 1,
+      "craftedFurnitures": [
+        "나무 의자",
+        "금속 선반",
+        "보물 수납장"
+      ],
+      "solvedQuestions": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7
+      ],
+      "escaped": true,
+      "escapedAt": "2026-11-17T15:42:05.000Z"
+    },
+    {
+      "id": "st_03",
+      "grade": "1",
+      "classNum": "3",
+      "studentNum": "18",
+      "name": "박민승",
+      "character": "char_boy_3",
+      "score": 1120,
+      "wood": 3,
+      "metal": 2,
+      "craftedFurnitures": [
+        "나무 의자",
+        "나무 책상",
+        "보물 수납장"
+      ],
+      "solvedQuestions": [
+        1,
+        3,
+        5,
+        7,
+        8
+      ],
+      "escaped": true,
+      "escapedAt": "2026-11-17T15:50:20.000Z"
+    },
+    {
+      "id": "st_04",
+      "grade": "1",
+      "classNum": "4",
+      "studentNum": "09",
+      "name": "김도현",
+      "character": "char_girl_1",
+      "score": 960,
+      "wood": 1,
+      "metal": 1,
+      "craftedFurnitures": [
+        "나무 의자",
+        "나무 책상"
+      ],
+      "solvedQuestions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "escaped": true,
+      "escapedAt": "2026-11-17T16:01:10.000Z"
+    },
+    {
+      "id": "st_05",
+      "grade": "1",
+      "classNum": "5",
+      "studentNum": "23",
+      "name": "정우진",
+      "character": "char_boy_4",
+      "score": 830,
+      "wood": 2,
+      "metal": 0,
+      "craftedFurnitures": [
+        "나무 의자",
+        "금속 선반"
+      ],
+      "solvedQuestions": [
+        2,
+        4,
+        6
+      ],
+      "escaped": true,
+      "escapedAt": "2026-11-17T16:15:40.000Z"
+    },
+    {
+      "id": "st_1794908215736_941",
+      "grade": "3",
+      "classNum": "16",
+      "studentNum": "7",
+      "name": "김지훈",
+      "character": "char_girl_2",
+      "score": 245,
+      "wood": 4,
+      "metal": 2,
+      "craftedFurnitures": [],
+      "solvedQuestions": [
+        3,
+        1
+      ],
+      "escaped": true,
+      "startedAt": "2026-11-17T09:36:55.765Z",
+      "escapedAt": "2026-11-17T09:37:31.550Z"
+    }
+  ]
+}

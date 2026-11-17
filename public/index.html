@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>중학교 3D 방탈출 아카데미 - 문제 풀고 방 탈출!</title>
+  <!-- Three.js & Confetti CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============================================================ -->
+  <!-- [화면 1] 게임 시작: 학생 이름 · 반 · 번호 입력                 -->
+  <!-- ============================================================ -->
+  <div id="screen-login" class="screen active">
+    <div class="login-bg-overlay"></div>
+    <div class="login-container">
+      <div class="brand-badge">
+        <span class="pulse-dot"></span> 3D INTERACTIVE ESCAPE ROOM
+      </div>
+      <h1 class="main-title">중학교 3D 방탈출 아카데미</h1>
+      <p class="sub-title">문제를 풀고 재료를 수집해 가구를 제작하고 방을 탈출하세요!</p>
+
+      <div class="login-card">
+        <h3 class="card-title"><i class="fa-solid fa-id-card"></i> 학생 참가 등록</h3>
+        <form id="form-student-login">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="input-grade">학년</label>
+              <select id="input-grade" required>
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="input-class">반</label>
+              <input type="number" id="input-class" placeholder="예: 2" min="1" max="30" required value="1">
+            </div>
+            <div class="form-group flex-1">
+              <label for="input-num">번호</label>
+              <input type="number" id="input-num" placeholder="예: 15" min="1" max="60" required value="7">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="input-name">학생 이름</label>
+            <input type="text" id="input-name" placeholder="이름을 입력하세요 (예: 김지훈)" required value="김지훈">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-glow">
+            <span>캐릭터 선택하러 가기</span> <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- 보조 버튼들 (QR코드 & 관리자 & 랭킹) -->
+      <div class="login-footer-actions">
+        <button id="btn-show-qr" class="btn-sub"><i class="fa-solid fa-qrcode"></i> 학생 접속용 QR코드</button>
+        <button id="btn-open-rank-login" class="btn-sub"><i class="fa-solid fa-trophy"></i> 실시간 랭킹</button>
+        <button id="btn-open-admin-login" class="btn-sub btn-admin-tag"><i class="fa-solid fa-lock"></i> 선생님 관리자</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [화면 2] 3D 캐릭터 커스터마이징 스튜디오                     -->
+  <!-- ============================================================ -->
+  <div id="screen-character" class="screen">
+    <div class="character-select-header">
+      <button id="btn-back-to-login" class="btn-nav"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+      <div class="header-text-group">
+        <h2>3D 캐릭터 커스터마이징</h2>
+        <p>머리 스타일, 옷(상의), 바지(하의), 신발을 취향대로 꾸미고 시작하세요!</p>
+      </div>
+      <div class="user-badge" id="char-user-badge">
+        <i class="fa-solid fa-user-graduate"></i> 1반 김지훈
+      </div>
+    </div>
+
+    <div class="character-select-body">
+      <!-- 좌측: 3D 캐릭터 턴테이블 미리보기 캔버스 -->
+      <div class="character-preview-pane">
+        <div class="preview-stage-light"></div>
+        <div id="char-preview-canvas-container"></div>
+        
+        <!-- 3D 뷰포트 회전 및 랜덤 컨트롤러 -->
+        <div class="preview-rotate-controls">
+          <button id="btn-rotate-left" class="btn-ctrl-chip" title="왼쪽으로 회전"><i class="fa-solid fa-rotate-left"></i></button>
+          <button id="btn-rotate-front" class="btn-ctrl-chip" title="정면 보기"><i class="fa-solid fa-street-view"></i> 정면</button>
+          <button id="btn-rotate-right" class="btn-ctrl-chip" title="오른쪽으로 회전"><i class="fa-solid fa-rotate-right"></i></button>
+          <button id="btn-random-avatar" class="btn-ctrl-chip btn-random-chip" title="랜덤 스타일 생성"><i class="fa-solid fa-dice"></i> <strong>랜덤 생성</strong></button>
+        </div>
+
+        <div class="character-desc-box">
+          <h3 id="preview-char-name">나만의 3D 학생 아바타</h3>
+          <p id="preview-char-desc">모든 부위를 자유롭게 커스텀하여 3D 방탈출에 도전하세요!</p>
+        </div>
+      </div>
+
+      <!-- 우측: 부위별 커스터마이징 컨트롤러 -->
+      <div class="character-custom-pane">
+        <!-- 부위 선택 카테고리 탭 -->
+        <div class="custom-nav-tabs">
+          <button class="custom-tab active" data-tab="tab-presets"><i class="fa-solid fa-wand-magic-sparkles"></i> 프리셋</button>
+          <button class="custom-tab" data-tab="tab-hair"><i class="fa-solid fa-user"></i> 머리/헤어</button>
+          <button class="custom-tab" data-tab="tab-top"><i class="fa-solid fa-shirt"></i> 상의(옷)</button>
+          <button class="custom-tab" data-tab="tab-bottom"><i class="fa-solid fa-socks"></i> 바지/하의</button>
+          <button class="custom-tab" data-tab="tab-shoes"><i class="fa-solid fa-shoe-prints"></i> 신발</button>
+          <button class="custom-tab" data-tab="tab-acc"><i class="fa-solid fa-glasses"></i> 악세서리</button>
+        </div>
+
+        <div class="custom-tab-content-wrapper">
+          <!-- 1. 추천 프리셋 탭 -->
+          <div id="tab-presets" class="custom-section active">
+            <h4 class="custom-sec-title">추천 인기 스타일 프리셋</h4>
+            <div class="preset-grid" id="preset-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+          </div>
+
+          <!-- 2. 머리/헤어 탭 -->
+          <div id="tab-hair" class="custom-section">
+            <h4 class="custom-sec-title">헤어스타일 선택</h4>
+            <div class="style-cards-grid" id="hair-style-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+            <h4 class="custom-sec-title mt-4">헤어 색상</h4>
+            <div class="color-palette-bar" id="hair-color-palette">
+              <!-- 색상 칩 동적 생성 -->
+            </div>
+          </div>
+
+          <!-- 3. 상의(옷) 탭 -->
+          <div id="tab-top" class="custom-section">
+            <h4 class="custom-sec-title">상의(옷) 스타일 선택</h4>
+            <div class="style-cards-grid" id="top-style-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+            <h4 class="custom-sec-title mt-4">상의 옷 색상</h4>
+            <div class="color-palette-bar" id="top-color-palette">
+              <!-- 색상 칩 -->
+            </div>
+          </div>
+
+          <!-- 4. 바지/하의 탭 -->
+          <div id="tab-bottom" class="custom-section">
+            <h4 class="custom-sec-title">하의(바지/스커트) 스타일 선택</h4>
+            <div class="style-cards-grid" id="bottom-style-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+            <h4 class="custom-sec-title mt-4">바지 색상</h4>
+            <div class="color-palette-bar" id="bottom-color-palette">
+              <!-- 색상 칩 -->
+            </div>
+          </div>
+
+          <!-- 5. 신발 탭 -->
+          <div id="tab-shoes" class="custom-section">
+            <h4 class="custom-sec-title">신발 스타일 선택</h4>
+            <div class="style-cards-grid" id="shoes-style-grid">
+              <!-- JS 동적 생성 -->
+            </div>
+            <h4 class="custom-sec-title mt-4">신발 색상</h4>
+            <div class="color-palette-bar" id="shoes-color-palette">
+              <!-- 색상 칩 -->
+            </div>
+          </div>
+
+          <!-- 6. 악세서리 / 피부톤 탭 -->
+          <div id="tab-acc" class="custom-section">
+            <h4 class="custom-sec-title">피부톤 선택</h4>
+            <div class="color-palette-bar" id="skin-color-palette">
+              <!-- 색상 칩 -->
+            </div>
+            <h4 class="custom-sec-title mt-4">안경 & 가방 옵션</h4>
+            <div class="acc-options-grid" id="acc-options-grid">
+              <!-- 안경 토글, 백팩 색상 등 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 하단 선택 완료 버튼 -->
+        <div class="custom-footer">
+          <button id="btn-confirm-character" class="btn btn-primary btn-block btn-lg btn-glow">
+            <span>이 캐릭터로 시작하기</span> <i class="fa-solid fa-circle-check"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [화면 3] 3D 인게임 메인 화면 (도서관, 과학실, 박물관, 공방)    -->
+  <!-- ============================================================ -->
+  <div id="screen-game" class="screen">
+    <!-- Three.js 3D 캔버스 -->
+    <div id="game-canvas-container"></div>
+
+    <!-- 인게임 상단 헤더 HUD (이미지 1 상단 플레이어 정보 UI) -->
+    <header class="game-hud-top">
+      <div class="hud-left-group">
+        <div class="player-profile-card">
+          <div class="player-avatar-circle" id="hud-avatar-icon">👦</div>
+          <div class="player-info-text">
+            <div class="student-label" id="hud-student-label">2반 김지훈</div>
+            <div class="student-score" id="hud-student-score"><i class="fa-solid fa-star"></i> 점수: <strong>0점</strong></div>
+          </div>
+        </div>
+
+        <!-- 재료 인벤토리 표시 -->
+        <div class="inventory-badges">
+          <div class="material-badge wood-badge">
+            <span class="mat-icon">🪵</span>
+            <span class="mat-label">목재</span>
+            <span class="mat-count" id="hud-wood-count">0</span>
+          </div>
+          <div class="material-badge metal-badge">
+            <span class="mat-icon">⚙️</span>
+            <span class="mat-label">금속</span>
+            <span class="mat-count" id="hud-metal-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 방 이동 탭 버튼 (1번 방 도서관, 2번 방 과학실, 3번 방 박물관, 4번 방 공방) -->
+      <div class="room-nav-tabs" id="room-nav-tabs">
+        <button class="room-tab active" data-room="room_1"><i class="fa-solid fa-book"></i> 1번 방 도서관</button>
+        <button class="room-tab" data-room="room_2"><i class="fa-solid fa-flask"></i> 2번 방 과학실</button>
+        <button class="room-tab" data-room="room_3"><i class="fa-solid fa-landmark"></i> 3번 방 박물관</button>
+        <button class="room-tab" data-room="room_4"><i class="fa-solid fa-hammer"></i> 4번 방 공방</button>
+      </div>
+
+      <!-- 우측 상단 유틸리티 버튼 -->
+      <div class="hud-right-group">
+        <button id="btn-open-crafting" class="btn-hud-action btn-craft-pulse">
+          <i class="fa-solid fa-couch"></i> <span>가구 제작하기</span>
+        </button>
+        <button id="btn-open-rank" class="btn-hud-action">
+          <i class="fa-solid fa-trophy"></i> <span>랭킹</span>
+        </button>
+        <button id="btn-open-admin-from-game" class="btn-hud-action btn-admin-sub">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 탈출 목표 프로그레스 알림 바 -->
+    <div class="escape-goal-bar" id="escape-goal-bar">
+      <div class="goal-text">
+        <i class="fa-solid fa-door-open"></i> <strong>방탈출 미션:</strong> 가구 <span id="goal-crafted-count">0</span>/<span id="goal-required-count">2</span>개 제작 완료 시 비상구가 열립니다!
+      </div>
+      <button id="btn-try-escape" class="btn-escape-now hidden">
+        <i class="fa-solid fa-person-running"></i> 비상 탈출구 열기!
+      </button>
+    </div>
+
+    <!-- 오브젝트 접근 시 나타나는 상호작용 프롬프트 -->
+    <div id="interaction-prompt" class="interaction-prompt hidden">
+      <div class="prompt-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      <div class="prompt-content">
+        <h4 id="prompt-obj-name">고대 비밀 책장</h4>
+        <p>가까이 다가갔습니다. <kbd>E</kbd> 키 또는 <strong>[조사하기]</strong> 버튼을 누르세요!</p>
+      </div>
+      <button id="btn-prompt-inspect" class="btn-prompt-action">조사하기</button>
+    </div>
+
+    <!-- 모바일 터치 컨트롤 (가상 조이스틱 & 액션 버튼) -->
+    <div class="mobile-controls-layer">
+      <!-- 왼쪽: 가상 조이스틱 영역 -->
+      <div class="virtual-joystick-zone" id="joystick-zone">
+        <div class="joystick-base" id="joystick-base">
+          <div class="joystick-stick" id="joystick-stick"></div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 액션 버튼들 (조사하기, 제작하기, 달리기) -->
+      <div class="mobile-action-buttons">
+        <button id="btn-mobile-inspect" class="action-btn action-inspect">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>조사하기</span>
+        </button>
+        <button id="btn-mobile-craft" class="action-btn action-craft">
+          <i class="fa-solid fa-hammer"></i>
+          <span>제작하기</span>
+        </button>
+        <button id="btn-mobile-run" class="action-btn action-run">
+          <i class="fa-solid fa-person-running"></i>
+          <span>달리기</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 1] 문제 풀이 팝업                                      -->
+  <!-- ============================================================ -->
+  <div id="modal-question" class="modal-overlay hidden">
+    <div class="modal-card modal-question-card">
+      <div class="modal-header">
+        <div class="q-header-left">
+          <span class="q-badge" id="modal-q-room-badge">1번 방 도서관</span>
+          <h3 id="modal-q-title">도서관의 숨겨진 책장</h3>
+        </div>
+        <div class="q-reward-badges">
+          <span class="badge-point" id="modal-q-points"><i class="fa-solid fa-star"></i> +20점</span>
+          <span class="badge-mat wood"><span class="mat-icon">🪵</span> +<span id="modal-q-wood">1</span></span>
+          <span class="badge-mat metal"><span class="mat-icon">⚙️</span> +<span id="modal-q-metal">1</span></span>
+        </div>
+        <button class="btn-modal-close" id="btn-close-q-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="q-content-box">
+          <div class="q-icon-box"><i class="fa-solid fa-circle-question"></i></div>
+          <p id="modal-q-text">다음 중 빛의 삼원색에 해당하지 않는 것은 무엇일까요?</p>
+        </div>
+
+        <div class="q-options-list" id="modal-q-options">
+          <!-- 보기 버튼들이 동적으로 채워짐 -->
+        </div>
+
+        <!-- 힌트 및 피드백 알림 영역 -->
+        <div id="modal-q-feedback" class="q-feedback hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 2] 가구 제작하기 팝업 (이미지 1 좌하단 레이아웃 완벽 재현)-->
+  <!-- ============================================================ -->
+  <div id="modal-crafting" class="modal-overlay hidden">
+    <div class="modal-card modal-crafting-card">
+      <div class="modal-header">
+        <div class="craft-title-group">
+          <h3><i class="fa-solid fa-couch"></i> 가구 제작하기</h3>
+          <p>문제를 풀어 모은 재료로 가구를 제작하면 높은 점수를 얻고 방에 배치됩니다!</p>
+        </div>
+        <div class="player-materials-summary">
+          <span class="summary-mat"><span class="mat-icon">🪵</span> 목재 <strong id="craft-wood-count">0</strong>개</span>
+          <span class="summary-mat"><span class="mat-icon">⚙️</span> 금속 <strong id="craft-metal-count">0</strong>개</span>
+        </div>
+        <button class="btn-modal-close" id="btn-close-craft-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="crafting-layout">
+          <!-- 좌측: 선택된 가구 3D/아이콘 확대 미리보기 -->
+          <div class="furniture-preview-side">
+            <div class="furniture-preview-box" id="craft-preview-box">
+              <span class="furniture-large-icon" id="craft-selected-icon">🪑</span>
+              <div class="craft-preview-name" id="craft-selected-name">나무 의자</div>
+              <div class="craft-preview-desc" id="craft-selected-desc">편안하게 쉴 수 있는 튼튼한 원목 의자</div>
+              <div class="craft-score-tag" id="craft-selected-score">+50점 획득</div>
+            </div>
+            <div class="craft-requirements" id="craft-selected-reqs">
+              <div class="req-item">필요 목재: <span class="req-val">2개</span></div>
+              <div class="req-item">필요 금속: <span class="req-val">0개</span></div>
+            </div>
+            <button id="btn-execute-craft" class="btn btn-primary btn-block btn-craft-confirm">
+              <i class="fa-solid fa-hammer"></i> 제작하기
+            </button>
+          </div>
+
+          <!-- 우측: 가구 카드 목록 그리드 -->
+          <div class="furniture-cards-grid" id="furniture-cards-grid">
+            <!-- JS 동적 생성 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 3] 랭킹 팝업 (이미지 1 중앙 하단 랭킹 레이아웃 완벽 재현) -->
+  <!-- ============================================================ -->
+  <div id="modal-ranking" class="modal-overlay hidden">
+    <div class="modal-card modal-ranking-card">
+      <div class="modal-header">
+        <div class="rank-title-group">
+          <h3><i class="fa-solid fa-trophy" style="color: #fbbf24;"></i> 명예의 전당 랭킹</h3>
+          <span class="rank-notice-tag">※ 총점이 높은 순으로 순위가 결정됩니다. (소요시간 미반영)</span>
+        </div>
+        <button class="btn-modal-close" id="btn-close-rank-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="ranking-table-container">
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th width="15%">순위</th>
+                <th width="35%">학생 정보</th>
+                <th width="25%">제작 가구</th>
+                <th width="25%">총점</th>
+              </tr>
+            </thead>
+            <tbody id="ranking-table-body">
+              <!-- JS 동적 생성 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 4] 탈출 성공 축하 모달                                 -->
+  <!-- ============================================================ -->
+  <div id="modal-escape-success" class="modal-overlay hidden">
+    <div class="modal-card modal-success-card">
+      <div class="success-icon-banner">🏆</div>
+      <h2>🎉 방 탈출 성공! 축하합니다! 🎉</h2>
+      <p class="success-subtitle">모든 미션을 완수하고 신비한 아카데미의 방을 성공적으로 탈출했습니다!</p>
+
+      <div class="final-score-display">
+        <div class="score-card">
+          <span class="label">최종 획득 점수</span>
+          <span class="val" id="final-score-val">1,250점</span>
+        </div>
+        <div class="score-card">
+          <span class="label">명예의 순위</span>
+          <span class="val highlight" id="final-rank-val">1위</span>
+        </div>
+      </div>
+
+      <div class="modal-footer-btns">
+        <button id="btn-success-view-rank" class="btn btn-primary"><i class="fa-solid fa-trophy"></i> 전체 랭킹 확인</button>
+        <button id="btn-success-replay" class="btn btn-sub"><i class="fa-solid fa-rotate-right"></i> 다시 하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 5] QR 코드 모달 (학생 모바일 접속용)                   -->
+  <!-- ============================================================ -->
+  <div id="modal-qrcode" class="modal-overlay hidden">
+    <div class="modal-card modal-qr-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-qrcode"></i> 학생 접속용 QR 코드</h3>
+        <button class="btn-modal-close" id="btn-close-qr-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body qr-modal-body">
+        <p class="qr-info-text">스마트폰이나 태블릿 카메라로 QR 코드를 스캔하면 즉시 게임에 접속할 수 있습니다.</p>
+        <div class="qr-image-wrapper">
+          <img id="qr-image" src="" alt="접속 QR코드">
+        </div>
+        <div class="qr-url-box">
+          <span id="qr-url-text">http://localhost:3000</span>
+          <button id="btn-copy-qr-url" class="btn-copy"><i class="fa-solid fa-copy"></i> 복사</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 6] 교사용 관리자 모드 (비밀번호 모드 & 전체 관리 패널)  -->
+  <!-- ============================================================ -->
+  <div id="modal-admin" class="modal-overlay hidden">
+    <div class="modal-card modal-admin-card">
+      
+      <!-- [관리자 잠금 화면 (비밀번호 입력)] -->
+      <div id="admin-lock-view" class="admin-lock-view">
+        <div class="admin-lock-icon"><i class="fa-solid fa-lock"></i></div>
+        <h3>선생님 관리자 모드</h3>
+        <p>관리자 비밀번호를 입력해주세요. (기본 비밀번호: <strong>1212</strong>)</p>
+        <form id="form-admin-login">
+          <div class="form-group">
+            <input type="password" id="input-admin-pw" placeholder="비밀번호 입력" required autofocus>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">인증 및 접속</button>
+        </form>
+        <button class="btn-sub mt-3" id="btn-cancel-admin-login">닫기</button>
+      </div>
+
+      <!-- [관리자 대시보드 화면] (이미지 1 우하단 관리자 패널 완벽 재현) -->
+      <div id="admin-dashboard-view" class="admin-dashboard-view hidden">
+        <div class="admin-dash-header">
+          <div class="dash-header-title">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h2>선생님 관리자 패널</h2>
+          </div>
+          <div class="dash-header-actions">
+            <span class="admin-badge"><i class="fa-solid fa-check"></i> 인증됨</span>
+            <button id="btn-admin-logout" class="btn-admin-logout"><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</button>
+            <button class="btn-modal-close" id="btn-close-admin-dash"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+        <div class="admin-dash-body">
+          <!-- 좌측 관리 메뉴 사이드바 -->
+          <nav class="admin-sidebar">
+            <button class="admin-tab active" data-tab="tab-questions"><i class="fa-solid fa-file-pen"></i> 문제 관리</button>
+            <button class="admin-tab" data-tab="tab-rooms"><i class="fa-solid fa-door-closed"></i> 방 관리</button>
+            <button class="admin-tab" data-tab="tab-students"><i class="fa-solid fa-users"></i> 학생 기록</button>
+            <button class="admin-tab" data-tab="tab-ranking"><i class="fa-solid fa-trophy"></i> 랭킹 관리</button>
+            <button class="admin-tab" data-tab="tab-settings"><i class="fa-solid fa-sliders"></i> 게임 설정</button>
+          </nav>
+
+          <!-- 우측 메인 콘텐츠 패널 -->
+          <main class="admin-content-pane">
+            
+            <!-- [탭 1] 문제 관리 (문제 추가/수정/삭제 & 문제 개수 설정 및 적용하기) -->
+            <section id="tab-questions" class="admin-tab-section active">
+              <div class="section-top-bar">
+                <div class="section-title-wrap">
+                  <h3>문제 목록 <span class="counter-text" id="admin-q-counter">(총 12개 중 8개 출제)</span></h3>
+                </div>
+                <div class="section-actions">
+                  <button id="btn-open-add-q" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 새 문제 추가</button>
+                </div>
+              </div>
+
+              <!-- 문제 개수 설정 바 (핵심 요구사항) -->
+              <div class="question-count-setting-bar">
+                <div class="setting-label">
+                  <i class="fa-solid fa-sliders"></i> <strong>게임 출제 문제 개수 설정:</strong>
+                </div>
+                <div class="setting-inputs">
+                  <input type="number" id="input-active-q-count" min="1" max="100" value="8" style="width: 70px;">
+                  <span class="unit">개</span>
+                  <select id="select-active-q-mode">
+                    <option value="sequential">앞 순서대로 출제</option>
+                    <option value="random">무작위 랜덤 출제</option>
+                  </select>
+                  <button id="btn-apply-active-q" class="btn btn-accent btn-sm">
+                    <i class="fa-solid fa-circle-check"></i> <strong>적용하기</strong>
+                  </button>
+                </div>
+                <div class="setting-info-tip">※ 출제 개수를 변경하고 [적용하기]를 누르면 즉시 게임에 반영됩니다.</div>
+              </div>
+
+              <!-- 문제 목록 테이블 -->
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th width="8%">번호</th>
+                      <th width="15%">방 테마</th>
+                      <th width="35%">문제 내용</th>
+                      <th width="12%">정답 보기</th>
+                      <th width="10%">배점/재료</th>
+                      <th width="8%">출제여부</th>
+                      <th width="12%">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-q-table-body">
+                    <!-- JS 동적 생성 -->
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- [탭 2] 방 관리 -->
+            <section id="tab-rooms" class="admin-tab-section">
+              <div class="section-top-bar">
+                <h3>방(Room) 테마 관리</h3>
+              </div>
+              <div class="room-cards-grid" id="admin-room-cards">
+                <!-- JS 동적 생성 -->
+              </div>
+            </section>
+
+            <!-- [탭 3] 학생 기록 관리 -->
+            <section id="tab-students" class="admin-tab-section">
+              <div class="section-top-bar">
+                <h3>학생 참가 기록</h3>
+                <div class="section-actions">
+                  <button id="btn-reset-students" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i> 전체 기록 초기화</button>
+                </div>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>학년/반/번호</th>
+                      <th>이름</th>
+                      <th>점수</th>
+                      <th>수집 재료</th>
+                      <th>제작 가구 수</th>
+                      <th>푼 문제 수</th>
+                      <th>탈출 여부</th>
+                      <th>관리</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-student-table-body">
+                    <!-- JS 동적 생성 -->
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- [탭 4] 랭킹 관리 -->
+            <section id="tab-ranking" class="admin-tab-section">
+              <div class="section-top-bar">
+                <h3>실시간 랭킹 리더보드 (총점 높은 순)</h3>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th width="10%">순위</th>
+                      <th width="25%">학생</th>
+                      <th width="25%">제작 가구 목록</th>
+                      <th width="15%">총점</th>
+                      <th width="15%">탈출 여부</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-rank-table-body">
+                    <!-- JS 동적 생성 -->
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- [탭 5] 게임 설정 & QR코드 관리 -->
+            <section id="tab-settings" class="admin-tab-section">
+              <div class="section-top-bar">
+                <h3>시스템 및 게임 룰 설정</h3>
+              </div>
+              <form id="form-admin-general-settings" class="admin-settings-form">
+                <div class="form-group">
+                  <label>관리자 비밀번호</label>
+                  <input type="text" id="setting-admin-pw" value="1212">
+                  <span class="field-hint">선생님 관리자 모드 진입 시 사용할 비밀번호입니다.</span>
+                </div>
+                <div class="form-group">
+                  <label>방 탈출에 필요한 최소 가구 제작 개수</label>
+                  <input type="number" id="setting-escape-furn" min="1" max="10" value="2">
+                  <span class="field-hint">학생이 가구를 몇 개 제작해야 탈출 게이트가 열리는지 설정합니다.</span>
+                </div>
+                <div class="form-group">
+                  <label>게임 사이트 타이틀</label>
+                  <input type="text" id="setting-site-title" value="3D 방탈출 아카데미">
+                </div>
+                <button type="submit" class="btn btn-primary">설정 저장하기</button>
+              </form>
+            </section>
+
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 7] 문제 추가 / 수정 다이얼로그                         -->
+  <!-- ============================================================ -->
+  <div id="modal-q-editor" class="modal-overlay hidden">
+    <div class="modal-card modal-q-editor-card">
+      <div class="modal-header">
+        <h3 id="q-editor-title">문제 추가</h3>
+        <button class="btn-modal-close" id="btn-close-q-editor"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-q-editor">
+        <input type="hidden" id="edit-q-id" value="">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>배치할 방 테마</label>
+            <select id="edit-q-room" required>
+              <option value="room_1">1번 방 - 도서관</option>
+              <option value="room_2">2번 방 - 과학실</option>
+              <option value="room_3">3번 방 - 박물관</option>
+              <option value="room_4">4번 방 - 공방</option>
+            </select>
+          </div>
+          <div class="form-group flex-2">
+            <label>오브젝트 / 문제 제목</label>
+            <input type="text" id="edit-q-obj-title" placeholder="예: 신비한 화학 플라스크" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>문제 내용 (지문)</label>
+          <textarea id="edit-q-content" rows="3" placeholder="문제를 입력하세요" required></textarea>
+        </div>
+
+        <div class="options-edit-group">
+          <label>보기 (선택지 4개 & 정답 라디오 체크)</label>
+          <div class="option-row">
+            <input type="radio" name="edit-correct-idx" value="0" required checked>
+            <input type="text" id="edit-opt-0" placeholder="1번 보기" required>
+          </div>
+          <div class="option-row">
+            <input type="radio" name="edit-correct-idx" value="1">
+            <input type="text" id="edit-opt-1" placeholder="2번 보기" required>
+          </div>
+          <div class="option-row">
+            <input type="radio" name="edit-correct-idx" value="2">
+            <input type="text" id="edit-opt-2" placeholder="3번 보기" required>
+          </div>
+          <div class="option-row">
+            <input type="radio" name="edit-correct-idx" value="3">
+            <input type="text" id="edit-opt-3" placeholder="4번 보기" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>정답 배점</label>
+            <input type="number" id="edit-q-points" min="5" max="100" value="20" required>
+          </div>
+          <div class="form-group flex-1">
+            <label>지급 목재(개)</label>
+            <input type="number" id="edit-q-wood" min="0" max="10" value="1" required>
+          </div>
+          <div class="form-group flex-1">
+            <label>지급 금속(개)</label>
+            <input type="number" id="edit-q-metal" min="0" max="10" value="1" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>힌트 (오답 시 표시)</label>
+          <input type="text" id="edit-q-hint" placeholder="정답을 유추할 수 있는 힌트를 입력하세요">
+        </div>
+
+        <div class="modal-footer-btns">
+          <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> 저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 앱 스크립트 파일들 -->
+  <script src="js/game3d.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
