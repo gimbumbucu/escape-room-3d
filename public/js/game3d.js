@@ -3,7 +3,7 @@
  * 3D 방탈출 아카데미 - 룸 탐험, 캐릭터 컨트롤, 가구 소환, 오브젝트 상호작용
  */
 
-window.Game3D = (function () {
+window.Game3D = (function() {
   let scene, camera, renderer;
   let playerMesh = null;
   let currentRoomId = 'room_1';
@@ -95,13 +95,24 @@ window.Game3D = (function () {
     // 초기 방 구축
     buildRoom(currentRoomId);
 
-    // 창 크기 변경 이벤트
-    window.addEventListener('resize', () => {
+    // 창 크기 및 화면 회전(Orientation) 자동 반응형 리사이즈 이벤트
+    function handleResize() {
       if (!renderer || !camera || !container) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    }
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(handleResize, 150);
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
 
     // 렌더 루프 시작
     animate();
@@ -1354,6 +1365,18 @@ window.Game3D = (function () {
     // 마우스/터치 드래그로 캐릭터 회전 지원
     setupPreviewDrag(container);
 
+    // 프리뷰 캔버스 창 크기 변경 및 회전 반응형 처리
+    window.addEventListener('resize', () => {
+      if (!previewRenderer || !previewCamera || !container) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0) {
+        previewCamera.aspect = w / h;
+        previewCamera.updateProjectionMatrix();
+        previewRenderer.setSize(w, h);
+      }
+    });
+
     updatePreviewCharacter(initialCustomOptions || defaultCustomData);
 
     function animPreview() {
@@ -1680,7 +1703,7 @@ window.Game3D = (function () {
     triggerNearbyInspect: triggerNearbyInspect,
     characterPresets: characterPresets,
     defaultCustomData: defaultCustomData,
-    toggleRunning: function (state) {
+    toggleRunning: function(state) {
       moveState.isRunning = state;
     }
   };

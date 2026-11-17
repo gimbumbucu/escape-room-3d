@@ -33,14 +33,18 @@
   user-select: none;
 }
 
-body, html {
+body,
+html {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
+  position: fixed;
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-family);
   font-size: 15px;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* 화면 전환 관리 */
@@ -159,7 +163,7 @@ body, html {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 85% 75%, rgba(245, 158, 11, 0.1) 0%, transparent 45%);
   pointer-events: none;
@@ -198,9 +202,20 @@ body, html {
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.7; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.7; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
 }
 
 .main-title {
@@ -246,8 +261,13 @@ body, html {
   margin-bottom: 16px;
 }
 
-.flex-1 { flex: 1; }
-.flex-2 { flex: 2; }
+.flex-1 {
+  flex: 1;
+}
+
+.flex-2 {
+  flex: 2;
+}
 
 .form-group {
   margin-bottom: 16px;
@@ -531,13 +551,15 @@ body, html {
 }
 
 /* 스타일 선택 카드 그리드 (헤어/상의/바지/신발 공통) */
-.style-cards-grid, .preset-grid {
+.style-cards-grid,
+.preset-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
-.style-card, .preset-card {
+.style-card,
+.preset-card {
   background: var(--bg-card);
   border: 2px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -548,19 +570,22 @@ body, html {
   position: relative;
 }
 
-.style-card:hover, .preset-card:hover {
+.style-card:hover,
+.preset-card:hover {
   background: var(--bg-card-hover);
   border-color: #60a5fa;
   transform: translateY(-2px);
 }
 
-.style-card.selected, .preset-card.selected {
+.style-card.selected,
+.preset-card.selected {
   border-color: #fbbf24;
   background: rgba(245, 158, 11, 0.15);
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
 }
 
-.style-card.selected::after, .preset-card.selected::after {
+.style-card.selected::after,
+.preset-card.selected::after {
   content: "✓";
   position: absolute;
   top: 6px;
@@ -577,13 +602,15 @@ body, html {
   justify-content: center;
 }
 
-.style-card-icon, .preset-card-icon {
+.style-card-icon,
+.preset-card-icon {
   font-size: 32px;
   margin-bottom: 6px;
   display: block;
 }
 
-.style-card-name, .preset-card-name {
+.style-card-name,
+.preset-card-name {
   font-size: 13px;
   font-weight: 700;
   color: #fff;
@@ -699,7 +726,8 @@ body, html {
   background: rgba(10, 16, 32, 0.9);
   border-top: 1px solid var(--border-light);
 }
-  transform: translateY(-3px);
+
+transform: translateY(-3px);
 }
 
 .char-card.selected {
@@ -763,9 +791,9 @@ body, html {
 /* 상단 HUD 바 (이미지 1의 게임 화면 상단 정보창 완벽 재현) */
 .game-hud-top {
   position: absolute;
-  top: 14px;
-  left: 16px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
   z-index: 10;
   display: flex;
   align-items: center;
@@ -773,7 +801,9 @@ body, html {
   pointer-events: none;
 }
 
-.hud-left-group, .hud-right-group, .room-nav-tabs {
+.hud-left-group,
+.hud-right-group,
+.room-nav-tabs {
   pointer-events: auto;
 }
 
@@ -986,8 +1016,15 @@ body, html {
 }
 
 @keyframes floatUp {
-  from { opacity: 0; transform: translate(-50%, 15px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .prompt-icon {
@@ -1038,9 +1075,9 @@ body, html {
 /* ============================================================ */
 .mobile-controls-layer {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
   z-index: 8;
   display: flex;
   justify-content: space-between;
@@ -1174,8 +1211,15 @@ body, html {
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-header {
@@ -1234,7 +1278,8 @@ body, html {
   gap: 6px;
 }
 
-.badge-point, .badge-mat {
+.badge-point,
+.badge-mat {
   font-size: 12px;
   font-weight: 800;
   padding: 4px 8px;
@@ -1631,8 +1676,13 @@ body, html {
 }
 
 @keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-10px); }
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-10px);
+  }
 }
 
 .modal-success-card h2 {
@@ -2242,5 +2292,106 @@ body, html {
 
   .action-btn i {
     font-size: 17px;
+  }
+}
+
+/* 태블릿 및 컴팩트 노트북 (iPad, MacBook Air 13" 등 1024px 이하) */
+@media (max-width: 1024px) {
+  .character-select-body {
+    padding: 14px 18px;
+    gap: 16px;
+  }
+
+  .style-cards-grid,
+  .preset-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal-card {
+    max-width: 92vw;
+  }
+}
+
+/* 스마트폰 가로 모드 (Landscape: 눕혀서 플레이할 때) */
+@media (max-height: 540px) and (orientation: landscape) {
+  .game-hud-top {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    top: max(6px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+  }
+
+  .player-profile-card {
+    padding: 3px 10px 3px 3px;
+  }
+
+  .player-avatar-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  .student-label,
+  .student-score {
+    font-size: 11px;
+  }
+
+  .material-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .room-tab {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .escape-goal-bar {
+    top: 54px;
+    font-size: 10px;
+    padding: 4px 12px;
+  }
+
+  .mobile-controls-layer {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .virtual-joystick-zone {
+    width: 90px;
+    height: 90px;
+  }
+
+  .joystick-base {
+    width: 84px;
+    height: 84px;
+  }
+
+  .joystick-stick {
+    width: 36px;
+    height: 36px;
+  }
+
+  .action-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .action-btn i {
+    font-size: 15px;
+  }
+
+  .action-btn span {
+    font-size: 8px;
+  }
+
+  .character-select-body {
+    flex-direction: row;
+    overflow-y: hidden;
+  }
+
+  #char-preview-canvas-container {
+    height: 200px;
   }
 }
