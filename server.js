@@ -282,10 +282,14 @@ app.get('/api/ranking', (req, res) => {
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   const db = loadDB();
-  const correctPassword = db.settings.adminPassword || '1212';
+  const correctPassword = db.settings.adminPassword || 'qwer1234';
 
   if (password === correctPassword) {
-    return res.json({ success: true, message: '관리자 인증 성공' });
+    return res.json({
+      success: true,
+      message: '관리자 인증 성공',
+      adminPassword: correctPassword
+    });
   } else {
     return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
   }
@@ -299,7 +303,8 @@ app.get('/api/admin/questions', (req, res) => {
     questions: db.questions || [],
     totalCount: (db.questions || []).length,
     activeCount: (db.questions || []).filter(q => q.active).length,
-    settingActiveCount: db.settings.activeQuestionCount || 8
+    settingActiveCount: db.settings.activeQuestionCount || 8,
+    adminPassword: db.settings.adminPassword || 'qwer1234'
   });
 });
 
@@ -505,7 +510,7 @@ if (require.main === module) {
     console.log(`🎮 3D 방탈출 게임 서버가 시작되었습니다!`);
     console.log(`- 로컬 접속:   http://localhost:${PORT}`);
     console.log(`- 모바일/QR접속: http://${localIP}:${PORT}`);
-    console.log(`- 관리자 초기 비밀번호: 1212`);
+    console.log(`- 관리자 초기 비밀번호: qwer1234`);
     console.log(`===============================================`);
   });
 }

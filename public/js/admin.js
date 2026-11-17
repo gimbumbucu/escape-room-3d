@@ -9,6 +9,7 @@ window.Admin = (function () {
   let allRooms = [];
   let allStudents = [];
   let currentEditingQId = null;
+  let selectedQuestionId = null;
 
   // 초기화 및 이벤트 바인딩
   function init() {
@@ -65,16 +66,46 @@ window.Admin = (function () {
       });
     });
 
-    // 출제할 문제 개수 설정 [적용하기] 버튼 (핵심 요구사항)
+    // 출제할 문제 개수 설정 [적용하기] 버튼 (사진 하단 레이아웃 일치)
     const btnApplyActiveQ = document.getElementById('btn-apply-active-q');
     if (btnApplyActiveQ) {
       btnApplyActiveQ.addEventListener('click', handleApplyActiveQuestionCount);
     }
 
-    // 새 문제 추가 버튼
+    // 상단 사진 일치 알약 버튼: 추가 [파란색], 수정 [초록색], 삭제 [빨간색]
     const btnOpenAddQ = document.getElementById('btn-open-add-q');
     if (btnOpenAddQ) {
       btnOpenAddQ.addEventListener('click', () => openQuestionEditor(null));
+    }
+
+    const btnPillEditQ = document.getElementById('btn-pill-edit-q');
+    if (btnPillEditQ) {
+      btnPillEditQ.addEventListener('click', () => {
+        if (!selectedQuestionId) {
+          alert('수정할 문제를 목록에서 먼저 클릭하여 선택해주세요.');
+          return;
+        }
+        const qData = allQuestions.find(q => q.id === selectedQuestionId);
+        if (qData) {
+          openQuestionEditor(qData);
+        } else {
+          alert('선택된 문제를 찾을 수 없습니다.');
+        }
+      });
+    }
+
+    const btnPillDelQ = document.getElementById('btn-pill-del-q');
+    if (btnPillDelQ) {
+      btnPillDelQ.addEventListener('click', async () => {
+        if (!selectedQuestionId) {
+          alert('삭제할 문제를 목록에서 먼저 클릭하여 선택해주세요.');
+          return;
+        }
+        if (confirm(`선택한 문제 #${selectedQuestionId}를 정말로 삭제하시겠습니까?`)) {
+          await deleteQuestion(selectedQuestionId);
+          selectedQuestionId = null;
+        }
+      });
     }
 
     // 문제 에디터 모달 닫기
@@ -174,15 +205,32 @@ window.Admin = (function () {
         allQuestions = data.questions || [];
         renderQuestionTable(allQuestions);
 
-        // 카운터 및 입력창 값 갱신
+        // 상단 비밀번호 뱃지 갱신 (사진 우측 상단 '비밀번호: qwer1234')
+        const pwBadge = document.getElementById('admin-pw-badge-val');
+        if (pwBadge && data.adminPassword) {
+          pwBadge.textContent = data.adminPassword;
+        }
+
+        // 카운터 텍스트: 문제 목록 (총 100개 중 15개 출제)
         const counter = document.getElementById('admin-q-counter');
         if (counter) {
-          counter.textContent = `(총 ${data.totalCount}개 중 ${data.activeCount}개 출제 중)`;
+          counter.textContent = `(총 ${data.totalCount}개 중 ${data.activeCount}개 출제)`;
         }
-        const inputCount = document.getElementById('input-active-q-count');
-        if (inputCount) {
-          inputCount.value = data.settingActiveCount || data.activeCount;
-          inputCount.max = data.totalCount;
+
+        // 하단 출제 수 드롭다운 셀렉트 동적 옵션 및 현재값 동기화
+        const selectCount = document.getElementById('select-active-q-count');
+        if (selectCount) {
+          const currentVal = data.settingActiveCount || data.activeCount || 8;
+          // 총 개수 기반으로 적절한 옵션 목록 설정
+          const defaultOptions = [3, 5, 8, 10, 12, 15, 20, 25, 30, 50, 100];
+          const optsSet = new Set(defaultOptions.filter(n => n <= Math.max(data.totalCount, 15)));
+          optsSet.add(currentVal);
+          optsSet.add(data.totalCount);
+
+          const sortedOpts = Array.from(optsSet).filter(n => n > 0).sort((a, b) => a - b);
+          selectCount.innerHTML = sortedOpts.map(n => 
+            `<option value="${n}" ${n === currentVal ? 'selected' : ''}>${n}개</option>`
+          ).join('');
         }
       }
     } catch (err) {
@@ -195,74 +243,65 @@ window.Admin = (function () {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (questions.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">등록된 문제가 없습니다.</td></tr>`;
+    if (!questions || questions.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 25px;">등록된 문제가 없습니다. 상단 [추가] 버튼을 눌러 문제를 등록하세요.</td></tr>`;
       return;
     }
 
-    const roomNames = {
-      room_1: '1번 방(도서관)',
-      room_2: '2번 방(과학실)',
-      room_3: '3번 방(박물관)',
-      room_4: '4번 방(공방)'
-    };
-
-    questions.forEach((q) => {
+    questions.forEach((q, index) => {
       const tr = document.createElement('tr');
-      const correctOptText = q.options[q.answerIndex] || `보기 ${q.answerIndex + 1}`;
-      const activeBadge = q.active
-        ? `<span class="badge-active">출제중</span>`
-        : `<span class="badge-inactive">대기</span>`;
+      tr.dataset.id = q.id;
+
+      if (selectedQuestionId === q.id) {
+        tr.classList.add('selected-row');
+      }
+
+      // 보기 한 줄 문자열 포맷: 1.수성 2.금성 3.지구 4.화성 (사진과 100% 동일한 노란색 폰트)
+      const formattedOptions = (q.options || [])
+        .map((opt, i) => `${i + 1}.${opt}`)
+        .join(' ');
+
+      // 정답 번호 (1-based index)
+      const answerDisplay = (q.answerIndex !== undefined ? q.answerIndex + 1 : 1);
 
       tr.innerHTML = `
-        <td style="font-weight: 800; color: #93c5fd;">#${q.id}</td>
-        <td><span style="font-size: 12px; color: #fbbf24;">${roomNames[q.roomId] || q.roomId}</span></td>
-        <td>
-          <div style="font-weight: 700; color: #fff;">${escapeHtml(q.title)}</div>
-          <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${escapeHtml(q.question)}</div>
-        </td>
-        <td style="color: #34d399; font-weight: 600;">${q.answerIndex + 1}. ${escapeHtml(correctOptText)}</td>
-        <td>
-          <span style="color: #fbbf24; font-weight: 700;">+${q.points}점</span><br>
-          <span style="font-size: 11px; color: #94a3b8;">🪵${q.rewardWood} ⚙️${q.rewardMetal}</span>
-        </td>
-        <td>${activeBadge}</td>
-        <td>
-          <button class="btn-table-action btn-edit-q" data-id="${q.id}"><i class="fa-solid fa-pen"></i> 수정</button>
-          <button class="btn-table-action btn-del btn-del-q" data-id="${q.id}"><i class="fa-solid fa-trash"></i> 삭제</button>
-        </td>
+        <td class="photo-col-num">${index + 1}</td>
+        <td class="photo-col-question">${escapeHtml(q.question || q.title)}</td>
+        <td class="photo-col-options"><span class="table-opt-highlight">${escapeHtml(formattedOptions)}</span></td>
+        <td class="photo-col-answer"><span class="table-ans-highlight">${answerDisplay}</span></td>
       `;
+
+      // 행 클릭 시 선택 상태 토글 및 하이라이트
+      tr.addEventListener('click', () => {
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected-row'));
+        tr.classList.add('selected-row');
+        selectedQuestionId = q.id;
+      });
+
+      // 더블 클릭 시 바로 수정창 오픈
+      tr.addEventListener('dblclick', () => {
+        selectedQuestionId = q.id;
+        openQuestionEditor(q);
+      });
+
       tbody.appendChild(tr);
     });
 
-    // 수정 / 삭제 버튼 이벤트 리스너 바인딩
-    tbody.querySelectorAll('.btn-edit-q').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const qId = parseInt(btn.dataset.id);
-        const qData = allQuestions.find(q => q.id === qId);
-        if (qData) openQuestionEditor(qData);
-      });
-    });
-
-    tbody.querySelectorAll('.btn-del-q').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const qId = parseInt(btn.dataset.id);
-        if (confirm(`정말로 문제 #${qId}를 삭제하시겠습니까?`)) {
-          await deleteQuestion(qId);
-        }
-      });
-    });
+    // 선택된 항목이 없거나 목록에 없으면 첫 번째 행 자동 선택
+    if ((!selectedQuestionId || !questions.some(q => q.id === selectedQuestionId)) && questions.length > 0) {
+      selectedQuestionId = questions[0].id;
+      const firstRow = tbody.querySelector('tr');
+      if (firstRow) firstRow.classList.add('selected-row');
+    }
   }
 
-  // 출제할 문제 개수(N개) 설정 및 [적용하기]
+  // 출제할 문제 개수(N개) 설정 및 [적용하기] (사진 하단 출제 수 설정 UI 연동)
   async function handleApplyActiveQuestionCount() {
-    const countInput = document.getElementById('input-active-q-count');
-    const modeSelect = document.getElementById('select-active-q-mode');
-    const count = parseInt(countInput.value);
-    const mode = modeSelect.value;
+    const select = document.getElementById('select-active-q-count');
+    const count = parseInt(select ? select.value : 8);
 
     if (isNaN(count) || count <= 0) {
-      alert('1개 이상의 올바른 문제 개수를 입력해주세요.');
+      alert('1개 이상의 올바른 문제 개수를 선택해주세요.');
       return;
     }
 
@@ -270,7 +309,7 @@ window.Admin = (function () {
       const res = await fetch('/api/admin/questions/set-active-count', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count, mode })
+        body: JSON.stringify({ count, mode: 'sequential' })
       });
       const data = await res.json();
       if (data.success) {

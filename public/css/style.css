@@ -1922,49 +1922,178 @@ html {
   font-weight: 600;
 }
 
-/* 문제 개수 설정 바 (핵심 기능) */
-.question-count-setting-bar {
-  background: rgba(18, 30, 56, 0.85);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border-radius: var(--radius-md);
-  padding: 14px 18px;
-  margin-bottom: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-.setting-label {
+/* 상단 우측 비밀번호 표시 텍스트 */
+.admin-top-pw {
   font-size: 14px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  color: #e2e8f0;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.setting-inputs {
+.admin-top-pw strong {
+  color: #fbbf24;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* 관리자 모드 사진과 100% 동일한 [추가], [수정], [삭제] 알약 버튼 */
+.section-actions-pills {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.setting-inputs input,
-.setting-inputs select {
-  padding: 8px 12px;
-  background: rgba(10, 15, 30, 0.8);
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 14px;
-  font-family: inherit;
+.btn-pill-action {
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
-.setting-info-tip {
-  width: 100%;
-  font-size: 12px;
-  color: var(--text-sub);
-  margin-top: 4px;
+.btn-pill-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.btn-pill-action:active {
+  transform: translateY(0);
+}
+
+.btn-pill-blue {
+  background: #2563eb;
+  border: 1px solid #3b82f6;
+}
+
+.btn-pill-green {
+  background: #10b981;
+  border: 1px solid #34d399;
+}
+
+.btn-pill-red {
+  background: #ef4444;
+  border: 1px solid #f87171;
+}
+
+/* 관리자 사진 일치 4개 컬럼 테이블 (번호 | 문제 | 보기 | 정답) */
+.admin-photo-table th {
+  background: rgba(15, 23, 42, 0.95);
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+.admin-photo-table td {
+  padding: 11px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-photo-table tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.admin-photo-table tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-photo-table tr.selected-row {
+  background: rgba(37, 99, 235, 0.22) !important;
+  box-shadow: inset 0 0 0 1px #3b82f6;
+}
+
+.photo-col-num {
+  text-align: center;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.photo-col-question {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.photo-col-options {
+  font-size: 13px;
+}
+
+.table-opt-highlight {
+  color: #fbbf24;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.photo-col-answer {
+  text-align: center;
+}
+
+.table-ans-highlight {
+  color: #fbbf24;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+/* 관리자 사진 하단 출제 수 설정 바 */
+.question-count-bottom-bar {
+  margin-top: 14px;
+  padding: 12px 20px;
+  background: rgba(10, 15, 28, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.bottom-bar-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.select-active-count {
+  background: #0f172a;
+  border: 1px solid #3b82f6;
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.btn-apply-photo-blue {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+.btn-apply-photo-blue:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-apply-photo-blue:active {
+  transform: translateY(0);
 }
 
 /* 관리자 테이블 공통 */

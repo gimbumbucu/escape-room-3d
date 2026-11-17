@@ -63,7 +63,7 @@
       <div class="login-footer-actions">
         <button id="btn-show-qr" class="btn-sub"><i class="fa-solid fa-qrcode"></i> 학생 접속용 QR코드</button>
         <button id="btn-open-rank-login" class="btn-sub"><i class="fa-solid fa-trophy"></i> 실시간 랭킹</button>
-        <button id="btn-open-admin-login" class="btn-sub btn-admin-tag"><i class="fa-solid fa-lock"></i> 선생님 관리자</button>
+        <button id="btn-open-admin-login" class="btn-sub btn-admin-tag"><i class="fa-solid fa-lock"></i> 관리자 모드</button>
       </div>
     </div>
   </div>
@@ -467,8 +467,8 @@
       <!-- [관리자 잠금 화면 (비밀번호 입력)] -->
       <div id="admin-lock-view" class="admin-lock-view">
         <div class="admin-lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h3>선생님 관리자 모드</h3>
-        <p>관리자 비밀번호를 입력해주세요. (기본 비밀번호: <strong>1212</strong>)</p>
+        <h3>관리자 모드</h3>
+        <p>관리자 비밀번호를 입력해주세요.</p>
         <form id="form-admin-login">
           <div class="form-group">
             <input type="password" id="input-admin-pw" placeholder="비밀번호 입력" required autofocus>
@@ -478,16 +478,14 @@
         <button class="btn-sub mt-3" id="btn-cancel-admin-login">닫기</button>
       </div>
 
-      <!-- [관리자 대시보드 화면] (이미지 1 우하단 관리자 패널 완벽 재현) -->
+      <!-- [관리자 대시보드 화면] (이미지와 100% 동일한 관리자 모드 패널) -->
       <div id="admin-dashboard-view" class="admin-dashboard-view hidden">
         <div class="admin-dash-header">
           <div class="dash-header-title">
-            <i class="fa-solid fa-shield-halved"></i>
-            <h2>선생님 관리자 패널</h2>
+            <h2 class="admin-modal-title"><i class="fa-solid fa-lock" style="color: #fbbf24;"></i> 관리자 모드</h2>
           </div>
           <div class="dash-header-actions">
-            <span class="admin-badge"><i class="fa-solid fa-check"></i> 인증됨</span>
-            <button id="btn-admin-logout" class="btn-admin-logout"><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</button>
+            <span class="admin-top-pw">비밀번호: <strong id="admin-pw-badge-val">qwer1234</strong></span>
             <button class="btn-modal-close" id="btn-close-admin-dash"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
@@ -505,54 +503,51 @@
           <!-- 우측 메인 콘텐츠 패널 -->
           <main class="admin-content-pane">
             
-            <!-- [탭 1] 문제 관리 (문제 추가/수정/삭제 & 문제 개수 설정 및 적용하기) -->
+            <!-- [탭 1] 문제 관리 (이미지 3 화면 완벽 구현) -->
             <section id="tab-questions" class="admin-tab-section active">
               <div class="section-top-bar">
                 <div class="section-title-wrap">
-                  <h3>문제 목록 <span class="counter-text" id="admin-q-counter">(총 12개 중 8개 출제)</span></h3>
+                  <h3 class="q-list-title">문제 목록 <span class="counter-text" id="admin-q-counter">(총 12개 중 8개 출제)</span></h3>
                 </div>
-                <div class="section-actions">
-                  <button id="btn-open-add-q" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 새 문제 추가</button>
+                <!-- 이미지와 완벽 일치하는 파란색 [추가], 초록색 [수정], 빨간색 [삭제] 버튼 -->
+                <div class="section-actions-pills">
+                  <button id="btn-open-add-q" class="btn-pill-action btn-pill-blue">추가</button>
+                  <button id="btn-pill-edit-q" class="btn-pill-action btn-pill-green">수정</button>
+                  <button id="btn-pill-del-q" class="btn-pill-action btn-pill-red">삭제</button>
                 </div>
               </div>
 
-              <!-- 문제 개수 설정 바 (핵심 요구사항) -->
-              <div class="question-count-setting-bar">
-                <div class="setting-label">
-                  <i class="fa-solid fa-sliders"></i> <strong>게임 출제 문제 개수 설정:</strong>
-                </div>
-                <div class="setting-inputs">
-                  <input type="number" id="input-active-q-count" min="1" max="100" value="8" style="width: 70px;">
-                  <span class="unit">개</span>
-                  <select id="select-active-q-mode">
-                    <option value="sequential">앞 순서대로 출제</option>
-                    <option value="random">무작위 랜덤 출제</option>
-                  </select>
-                  <button id="btn-apply-active-q" class="btn btn-accent btn-sm">
-                    <i class="fa-solid fa-circle-check"></i> <strong>적용하기</strong>
-                  </button>
-                </div>
-                <div class="setting-info-tip">※ 출제 개수를 변경하고 [적용하기]를 누르면 즉시 게임에 반영됩니다.</div>
-              </div>
-
-              <!-- 문제 목록 테이블 -->
+              <!-- 문제 목록 테이블 (번호 | 문제 | 보기 | 정답) -->
               <div class="admin-table-wrap">
-                <table class="admin-table">
+                <table class="admin-table admin-photo-table">
                   <thead>
                     <tr>
                       <th width="8%">번호</th>
-                      <th width="15%">방 테마</th>
-                      <th width="35%">문제 내용</th>
-                      <th width="12%">정답 보기</th>
-                      <th width="10%">배점/재료</th>
-                      <th width="8%">출제여부</th>
-                      <th width="12%">관리</th>
+                      <th width="40%">문제</th>
+                      <th width="42%">보기</th>
+                      <th width="10%">정답</th>
                     </tr>
                   </thead>
                   <tbody id="admin-q-table-body">
                     <!-- JS 동적 생성 -->
                   </tbody>
                 </table>
+              </div>
+
+              <!-- 하단 출제 수 설정 바 (이미지 하단 레이아웃 완벽 일치) -->
+              <div class="question-count-bottom-bar">
+                <span class="bottom-bar-label">출제 수 설정</span>
+                <select id="select-active-q-count" class="select-active-count">
+                  <option value="5">5개</option>
+                  <option value="8" selected>8개</option>
+                  <option value="10">10개</option>
+                  <option value="12">12개</option>
+                  <option value="15">15개</option>
+                  <option value="20">20개</option>
+                </select>
+                <button id="btn-apply-active-q" class="btn-apply-photo-blue">
+                  <strong>적용하기</strong>
+                </button>
               </div>
             </section>
 
