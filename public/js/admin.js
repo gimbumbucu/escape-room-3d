@@ -133,41 +133,58 @@ window.Admin = (function () {
     }
   }
 
-  // 관리자 모달 열기
+  // 관리자 모달 열기 (비밀번호 인증 전에는 오직 비밀번호 창만 띄움)
   function openAdminModal() {
-    const modal = document.getElementById('modal-admin');
-    if (!modal) return;
-    modal.classList.remove('hidden');
+    const lockModal = document.getElementById('modal-admin-lock');
+    const dashModal = document.getElementById('modal-admin-dash');
 
     if (isAuthenticated) {
-      showDashboardView();
+      if (lockModal) lockModal.classList.add('hidden');
+      if (dashModal) dashModal.classList.remove('hidden');
       loadQuestions();
     } else {
-      showLockView();
+      // 인증 전: 대시보드는 완전히 감추고 작은 비밀번호 입력 모달만 표시
+      if (dashModal) dashModal.classList.add('hidden');
+      if (lockModal) {
+        lockModal.classList.remove('hidden');
+        const pwInput = document.getElementById('input-admin-pw');
+        if (pwInput) {
+          pwInput.value = '';
+          pwInput.focus();
+        }
+      }
     }
   }
 
   function closeAdminModal() {
-    const modal = document.getElementById('modal-admin');
-    if (modal) modal.classList.add('hidden');
+    const lockModal = document.getElementById('modal-admin-lock');
+    const dashModal = document.getElementById('modal-admin-dash');
+    if (lockModal) lockModal.classList.add('hidden');
+    if (dashModal) dashModal.classList.add('hidden');
   }
 
   function showLockView() {
-    document.getElementById('admin-lock-view').classList.remove('hidden');
-    document.getElementById('admin-dashboard-view').classList.add('hidden');
-    const pwInput = document.getElementById('input-admin-pw');
-    if (pwInput) {
-      pwInput.value = '';
-      pwInput.focus();
+    const lockModal = document.getElementById('modal-admin-lock');
+    const dashModal = document.getElementById('modal-admin-dash');
+    if (dashModal) dashModal.classList.add('hidden');
+    if (lockModal) {
+      lockModal.classList.remove('hidden');
+      const pwInput = document.getElementById('input-admin-pw');
+      if (pwInput) {
+        pwInput.value = '';
+        pwInput.focus();
+      }
     }
   }
 
   function showDashboardView() {
-    document.getElementById('admin-lock-view').classList.add('hidden');
-    document.getElementById('admin-dashboard-view').classList.remove('hidden');
+    const lockModal = document.getElementById('modal-admin-lock');
+    const dashModal = document.getElementById('modal-admin-dash');
+    if (lockModal) lockModal.classList.add('hidden');
+    if (dashModal) dashModal.classList.remove('hidden');
   }
 
-  // 관리자 인증 요청
+  // 관리자 인증 요청: 비밀번호가 맞을 때만 관리자 패널로 전환
   async function handleLogin(password) {
     try {
       const res = await fetch('/api/admin/login', {
@@ -178,10 +195,16 @@ window.Admin = (function () {
       const data = await res.json();
       if (data.success) {
         isAuthenticated = true;
+        // 비밀번호 입력창 닫고 대시보드 화면 열기
         showDashboardView();
         loadQuestions();
       } else {
         alert(data.message || '비밀번호가 올바르지 않습니다.');
+        const pwInput = document.getElementById('input-admin-pw');
+        if (pwInput) {
+          pwInput.value = '';
+          pwInput.focus();
+        }
       }
     } catch (err) {
       console.error(err);
@@ -191,7 +214,8 @@ window.Admin = (function () {
 
   function handleLogout() {
     isAuthenticated = false;
-    showLockView();
+    closeAdminModal();
+    openAdminModal();
   }
 
   // -------------------------------------------------------------

@@ -1149,8 +1149,22 @@ html {
   padding: 20px;
 }
 
+.hidden,
 .modal-overlay.hidden {
   display: none !important;
+}
+
+.modal-lock-card {
+  max-width: 400px !important;
+  padding: 34px 28px !important;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .modal-card {

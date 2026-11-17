@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>중학교 3D 방탈출 아카데미 - 문제 풀고 방 탈출!</title>
   <!-- Three.js & Confetti CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,9 +13,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
   <!-- ============================================================ -->
@@ -88,13 +92,17 @@
       <div class="character-preview-pane">
         <div class="preview-stage-light"></div>
         <div id="char-preview-canvas-container"></div>
-        
+
         <!-- 3D 뷰포트 회전 및 랜덤 컨트롤러 -->
         <div class="preview-rotate-controls">
-          <button id="btn-rotate-left" class="btn-ctrl-chip" title="왼쪽으로 회전"><i class="fa-solid fa-rotate-left"></i></button>
-          <button id="btn-rotate-front" class="btn-ctrl-chip" title="정면 보기"><i class="fa-solid fa-street-view"></i> 정면</button>
-          <button id="btn-rotate-right" class="btn-ctrl-chip" title="오른쪽으로 회전"><i class="fa-solid fa-rotate-right"></i></button>
-          <button id="btn-random-avatar" class="btn-ctrl-chip btn-random-chip" title="랜덤 스타일 생성"><i class="fa-solid fa-dice"></i> <strong>랜덤 생성</strong></button>
+          <button id="btn-rotate-left" class="btn-ctrl-chip" title="왼쪽으로 회전"><i
+              class="fa-solid fa-rotate-left"></i></button>
+          <button id="btn-rotate-front" class="btn-ctrl-chip" title="정면 보기"><i class="fa-solid fa-street-view"></i>
+            정면</button>
+          <button id="btn-rotate-right" class="btn-ctrl-chip" title="오른쪽으로 회전"><i
+              class="fa-solid fa-rotate-right"></i></button>
+          <button id="btn-random-avatar" class="btn-ctrl-chip btn-random-chip" title="랜덤 스타일 생성"><i
+              class="fa-solid fa-dice"></i> <strong>랜덤 생성</strong></button>
         </div>
 
         <div class="character-desc-box">
@@ -107,7 +115,8 @@
       <div class="character-custom-pane">
         <!-- 부위 선택 카테고리 탭 -->
         <div class="custom-nav-tabs">
-          <button class="custom-tab active" data-tab="tab-presets"><i class="fa-solid fa-wand-magic-sparkles"></i> 프리셋</button>
+          <button class="custom-tab active" data-tab="tab-presets"><i class="fa-solid fa-wand-magic-sparkles"></i>
+            프리셋</button>
           <button class="custom-tab" data-tab="tab-hair"><i class="fa-solid fa-user"></i> 머리/헤어</button>
           <button class="custom-tab" data-tab="tab-top"><i class="fa-solid fa-shirt"></i> 상의(옷)</button>
           <button class="custom-tab" data-tab="tab-bottom"><i class="fa-solid fa-socks"></i> 바지/하의</button>
@@ -209,7 +218,8 @@
           <div class="player-avatar-circle" id="hud-avatar-icon">👦</div>
           <div class="player-info-text">
             <div class="student-label" id="hud-student-label">2반 김지훈</div>
-            <div class="student-score" id="hud-student-score"><i class="fa-solid fa-star"></i> 점수: <strong>0점</strong></div>
+            <div class="student-score" id="hud-student-score"><i class="fa-solid fa-star"></i> 점수: <strong>0점</strong>
+            </div>
           </div>
         </div>
 
@@ -253,7 +263,8 @@
     <!-- 탈출 목표 프로그레스 알림 바 -->
     <div class="escape-goal-bar" id="escape-goal-bar">
       <div class="goal-text">
-        <i class="fa-solid fa-door-open"></i> <strong>방탈출 미션:</strong> 가구 <span id="goal-crafted-count">0</span>/<span id="goal-required-count">2</span>개 제작 완료 시 비상구가 열립니다!
+        <i class="fa-solid fa-door-open"></i> <strong>방탈출 미션:</strong> 가구 <span id="goal-crafted-count">0</span>/<span
+          id="goal-required-count">2</span>개 제작 완료 시 비상구가 열립니다!
       </div>
       <button id="btn-try-escape" class="btn-escape-now hidden">
         <i class="fa-solid fa-person-running"></i> 비상 탈출구 열기!
@@ -343,7 +354,8 @@
         </div>
         <div class="player-materials-summary">
           <span class="summary-mat"><span class="mat-icon">🪵</span> 목재 <strong id="craft-wood-count">0</strong>개</span>
-          <span class="summary-mat"><span class="mat-icon">⚙️</span> 금속 <strong id="craft-metal-count">0</strong>개</span>
+          <span class="summary-mat"><span class="mat-icon">⚙️</span> 금속 <strong
+              id="craft-metal-count">0</strong>개</span>
         </div>
         <button class="btn-modal-close" id="btn-close-craft-modal"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -459,41 +471,43 @@
   </div>
 
   <!-- ============================================================ -->
-  <!-- [모달 6] 교사용 관리자 모드 (비밀번호 모드 & 전체 관리 패널)  -->
+  <!-- [모달 6-A] 관리자 비밀번호 입력 팝업 (비밀번호 확인 전까지 오직 이 작은 창만 표시) -->
   <!-- ============================================================ -->
-  <div id="modal-admin" class="modal-overlay hidden">
-    <div class="modal-card modal-admin-card">
-      
-      <!-- [관리자 잠금 화면 (비밀번호 입력)] -->
-      <div id="admin-lock-view" class="admin-lock-view">
-        <div class="admin-lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h3>관리자 모드</h3>
-        <p>관리자 비밀번호를 입력해주세요.</p>
-        <form id="form-admin-login">
-          <div class="form-group">
-            <input type="password" id="input-admin-pw" placeholder="비밀번호 입력" required autofocus>
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">인증 및 접속</button>
-        </form>
-        <button class="btn-sub mt-3" id="btn-cancel-admin-login">닫기</button>
-      </div>
-
-      <!-- [관리자 대시보드 화면] (이미지와 100% 동일한 관리자 모드 패널) -->
-      <div id="admin-dashboard-view" class="admin-dashboard-view hidden">
-        <div class="admin-dash-header">
-          <div class="dash-header-title">
-            <h2 class="admin-modal-title"><i class="fa-solid fa-lock" style="color: #fbbf24;"></i> 관리자 모드</h2>
-          </div>
-          <div class="dash-header-actions">
-            <span class="admin-top-pw">비밀번호: <strong id="admin-pw-badge-val">qwer1234</strong></span>
-            <button class="btn-modal-close" id="btn-close-admin-dash"><i class="fa-solid fa-xmark"></i></button>
-          </div>
+  <div id="modal-admin-lock" class="modal-overlay hidden">
+    <div class="modal-card modal-lock-card">
+      <div class="admin-lock-icon" style="font-size: 40px; color: #fbbf24; margin-bottom: 12px;"><i class="fa-solid fa-lock"></i></div>
+      <h3 style="font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px;">관리자 모드</h3>
+      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 22px;">관리자 비밀번호를 입력해주세요.</p>
+      <form id="form-admin-login" style="width: 100%;">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <input type="password" id="input-admin-pw" placeholder="비밀번호 입력" required autofocus style="width: 100%; padding: 12px 14px; background: rgba(15, 23, 42, 0.9); border: 1px solid #3b82f6; border-radius: 8px; color: #fff; font-size: 15px; text-align: center; letter-spacing: 2px;">
         </div>
+        <button type="submit" class="btn btn-primary btn-block" style="width: 100%; padding: 12px; font-weight: 700; font-size: 15px;">인증 및 접속</button>
+      </form>
+      <button class="btn-sub mt-3" id="btn-cancel-admin-login" style="margin-top: 10px; width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; cursor: pointer;">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 6-B] 관리자 대시보드 화면 (비밀번호 인증 성공 시에만 열림)  -->
+  <!-- ============================================================ -->
+  <div id="modal-admin-dash" class="modal-overlay hidden">
+    <div class="modal-card modal-admin-card">
+      <div class="admin-dash-header">
+        <div class="dash-header-title">
+          <h2 class="admin-modal-title"><i class="fa-solid fa-lock" style="color: #fbbf24;"></i> 관리자 모드</h2>
+        </div>
+        <div class="dash-header-actions">
+          <span class="admin-top-pw">비밀번호: <strong id="admin-pw-badge-val">qwer1234</strong></span>
+          <button class="btn-modal-close" id="btn-close-admin-dash"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
 
         <div class="admin-dash-body">
           <!-- 좌측 관리 메뉴 사이드바 -->
           <nav class="admin-sidebar">
-            <button class="admin-tab active" data-tab="tab-questions"><i class="fa-solid fa-file-pen"></i> 문제 관리</button>
+            <button class="admin-tab active" data-tab="tab-questions"><i class="fa-solid fa-file-pen"></i> 문제
+              관리</button>
             <button class="admin-tab" data-tab="tab-rooms"><i class="fa-solid fa-door-closed"></i> 방 관리</button>
             <button class="admin-tab" data-tab="tab-students"><i class="fa-solid fa-users"></i> 학생 기록</button>
             <button class="admin-tab" data-tab="tab-ranking"><i class="fa-solid fa-trophy"></i> 랭킹 관리</button>
@@ -502,12 +516,13 @@
 
           <!-- 우측 메인 콘텐츠 패널 -->
           <main class="admin-content-pane">
-            
+
             <!-- [탭 1] 문제 관리 (이미지 3 화면 완벽 구현) -->
             <section id="tab-questions" class="admin-tab-section active">
               <div class="section-top-bar">
                 <div class="section-title-wrap">
-                  <h3 class="q-list-title">문제 목록 <span class="counter-text" id="admin-q-counter">(총 12개 중 8개 출제)</span></h3>
+                  <h3 class="q-list-title">문제 목록 <span class="counter-text" id="admin-q-counter">(총 12개 중 8개 출제)</span>
+                  </h3>
                 </div>
                 <!-- 이미지와 완벽 일치하는 파란색 [추가], 초록색 [수정], 빨간색 [삭제] 버튼 -->
                 <div class="section-actions-pills">
@@ -566,7 +581,8 @@
               <div class="section-top-bar">
                 <h3>학생 참가 기록</h3>
                 <div class="section-actions">
-                  <button id="btn-reset-students" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i> 전체 기록 초기화</button>
+                  <button id="btn-reset-students" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i> 전체
+                    기록 초기화</button>
                 </div>
               </div>
               <div class="admin-table-wrap">
@@ -641,7 +657,6 @@
         </div>
       </div>
     </div>
-  </div>
 
   <!-- ============================================================ -->
   <!-- [모달 7] 문제 추가 / 수정 다이얼로그                         -->
@@ -727,4 +742,5 @@
   <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>
