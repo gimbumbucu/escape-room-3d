@@ -99,8 +99,8 @@ window.App = (function () {
         const studentNum = document.getElementById('input-num').value;
         const name = document.getElementById('input-name').value.trim();
 
-        if (!name || !classNum || !studentNum) {
-          alert('반, 번호, 이름을 모두 입력해주세요.');
+        if (!grade || !name || !classNum || !studentNum) {
+          alert('학년, 반, 번호, 이름을 모두 선택 및 입력해주세요.');
           return;
         }
 
