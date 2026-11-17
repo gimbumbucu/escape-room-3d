@@ -727,49 +727,6 @@ html {
   border-top: 1px solid var(--border-light);
 }
 
-transform: translateY(-3px);
-}
-
-.char-card.selected {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #fbbf24;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
-}
-
-.char-card.selected::after {
-  content: "✓";
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  background: #fbbf24;
-  color: #000;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.char-card-avatar {
-  font-size: 44px;
-  margin-bottom: 6px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-}
-
-.char-card-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.char-card-role {
-  font-size: 11px;
-  color: var(--text-sub);
-}
-
 /* ============================================================ */
 /* [화면 3] 3D 인게임 메인 화면 & HUD                             */
 /* ============================================================ */
@@ -2186,21 +2143,15 @@ transform: translateY(-3px);
     height: 220px;
   }
 
-  .character-grid {
-    grid-template-columns: repeat(4, 1fr);
+  .character-custom-pane {
+    width: 100%;
+    max-height: 55vh;
+  }
+
+  .style-cards-grid,
+  .preset-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
-  }
-
-  .char-card-avatar {
-    font-size: 32px;
-  }
-
-  .char-card-name {
-    font-size: 11px;
-  }
-
-  .char-card-role {
-    display: none;
   }
 
   .game-hud-top {
