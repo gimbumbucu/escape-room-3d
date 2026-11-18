@@ -34,8 +34,9 @@ window.Game3D = (function() {
 
   // 플레이어와 사물 간 충돌 감지 (radius = 0.45)
   function isColliding(x, z, radius = 0.45) {
-    // 1. 방 외벽 경계 (-10.5 ~ 10.5)
-    if (x - radius < -10.5 || x + radius > 10.5 || z - radius < -10.5 || z + radius > 10.5) {
+    // 1. 외벽/울타리 경계 (5번 방 공원은 16.5m, 일반 방은 10.5m)
+    const bound = (currentRoomId === 'room_5') ? 16.5 : 10.5;
+    if (x - radius < -bound || x + radius > bound || z - radius < -bound || z + radius > bound) {
       return true;
     }
 
@@ -102,8 +103,24 @@ window.Game3D = (function() {
       wallColor: 0x26190e,
       lightColor: 0xfb923c,
       ambientColor: 0x4a2e18
+    },
+    room_5: {
+      name: '5번 방 - 힐링 공원',
+      floorColor: 0x2e7d32,
+      wallColor: 0x1e3a2b,
+      lightColor: 0xfffaed,
+      ambientColor: 0xdcfce7,
+      isPark: true
     }
   };
+
+  // 5번 방 힐링 공원 전용 피처 및 점프 물리 상태
+  let trampolines = [];
+  let boosters = [];
+  let parkBoostTime = 0;
+  let playerVelocityY = 0;
+  let isGrounded = true;
+  let tagRole = 'runner'; // 'runner' (도망자) or 'tagger' (술래)
 
   // -------------------------------------------------------------
   // [1] Three.js 초기화 및 씬 설정
@@ -213,87 +230,128 @@ window.Game3D = (function() {
     roomGroup = new THREE.Group();
     roomObjects = [];
     colliders = [];
+    trampolines = [];
+    boosters = [];
+    parkBoostTime = 0;
 
-    // 조명 색상 테마 동기화
-    pointLight.color.setHex(theme.lightColor);
-    ambientLight.color.setHex(theme.ambientColor);
+    // 조명 & 안개 & 배경 하늘 설정
+    if (roomId === 'room_5') {
+      // 5번 방 힐링 공원: 화창한 야외 푸른 하늘 & 따스한 햇살
+      scene.background = new THREE.Color(0x7dd3fc); // 맑고 화창한 하늘색
+      scene.fog = new THREE.FogExp2(0xbae6fd, 0.012); // 부드러운 수평선 안개
+      dirLight.position.set(12, 22, 14);
+      dirLight.intensity = 1.35;
+      dirLight.color.setHex(0xfffbeb);
+      ambientLight.intensity = 0.85;
+      ambientLight.color.setHex(0xdcfce7);
+      pointLight.intensity = 0.6;
+      pointLight.color.setHex(0xfff7ed);
 
-    // 바닥 (Floor)
-    const floorGeo = new THREE.PlaneGeometry(24, 24);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: theme.floorColor,
-      roughness: 0.7,
-      metalness: 0.1
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    roomGroup.add(floor);
+      // 공원 3D 전체 빌드
+      buildParkObjects();
 
-    // 격자 바닥 타일 라인
-    const grid = new THREE.GridHelper(24, 12, 0xffffff, 0x475569);
-    grid.position.y = 0.01;
-    grid.material.opacity = 0.15;
-    grid.material.transparent = true;
-    roomGroup.add(grid);
+      // 공원 술래잡기 HUD 표시
+      const parkHud = document.getElementById('park-tag-hud');
+      if (parkHud) parkHud.classList.remove('hidden');
 
-    // 벽면 (Walls - 뒤, 좌, 우)
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: theme.wallColor,
-      roughness: 0.9
-    });
-
-    // 뒷벽
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(24, 8, 1), wallMat);
-    backWall.position.set(0, 4, -12);
-    backWall.receiveShadow = true;
-    roomGroup.add(backWall);
-
-    // 좌측벽
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 24), wallMat);
-    leftWall.position.set(-12, 4, 0);
-    leftWall.receiveShadow = true;
-    roomGroup.add(leftWall);
-
-    // 우측벽
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 24), wallMat);
-    rightWall.position.set(12, 4, 0);
-    rightWall.receiveShadow = true;
-    roomGroup.add(rightWall);
-
-    // 천장 샹들리에 또는 중앙 조명 장식
-    const chandelier = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.8, 1),
-      new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        emissive: 0xf59e0b,
-        emissiveIntensity: 0.6,
-        wireframe: true
-      })
-    );
-    chandelier.position.set(0, 5.5, 0);
-    roomGroup.add(chandelier);
-
-    // 비상 탈출 게이트 (Exit Door)
-    createExitGate();
-
-    // 테마별 고유 오브젝트 및 문제 조사 스팟 배치
-    buildThemeSpecificObjects(roomId);
-
-    // 기존 제작된 가구 재소환
-    placedFurnitures.forEach(furn => {
-      if (furn.roomId === roomId) {
-        spawnFurnitureMesh(furn, false);
+      // 캐릭터 위치 공원 남쪽 입구 산책로에 배치 (정면 분수대를 바라봄)
+      if (playerMesh) {
+        playerMesh.position.set(0, 0, 13);
+        playerMesh.rotation.y = Math.PI;
       }
-    });
+    } else {
+      // 1~4번 방 (실내 던전/테마 방)
+      scene.background = new THREE.Color(0x080d1a);
+      scene.fog = new THREE.FogExp2(0x080d1a, 0.035);
+      dirLight.position.set(8, 14, 10);
+      dirLight.intensity = 0.9;
+      dirLight.color.setHex(0xfff5e6);
+      ambientLight.intensity = 0.6;
+      ambientLight.color.setHex(theme.ambientColor || 0x4a3424);
+      pointLight.intensity = 1.2;
+      pointLight.color.setHex(theme.lightColor);
+
+      // 공원 술래잡기 HUD 숨김
+      const parkHud = document.getElementById('park-tag-hud');
+      if (parkHud) parkHud.classList.add('hidden');
+
+      // 바닥 (Floor)
+      const floorGeo = new THREE.PlaneGeometry(24, 24);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: theme.floorColor,
+        roughness: 0.7,
+        metalness: 0.1
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      roomGroup.add(floor);
+
+      // 격자 바닥 타일 라인
+      const grid = new THREE.GridHelper(24, 12, 0xffffff, 0x475569);
+      grid.position.y = 0.01;
+      grid.material.opacity = 0.15;
+      grid.material.transparent = true;
+      roomGroup.add(grid);
+
+      // 벽면 (Walls - 뒤, 좌, 우)
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: theme.wallColor,
+        roughness: 0.9
+      });
+
+      // 뒷벽
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(24, 8, 1), wallMat);
+      backWall.position.set(0, 4, -12);
+      backWall.receiveShadow = true;
+      roomGroup.add(backWall);
+
+      // 좌측벽
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 24), wallMat);
+      leftWall.position.set(-12, 4, 0);
+      leftWall.receiveShadow = true;
+      roomGroup.add(leftWall);
+
+      // 우측벽
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 24), wallMat);
+      rightWall.position.set(12, 4, 0);
+      rightWall.receiveShadow = true;
+      roomGroup.add(rightWall);
+
+      // 천장 샹들리에 또는 중앙 조명 장식
+      const chandelier = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.8, 1),
+        new THREE.MeshStandardMaterial({
+          color: 0xfbbf24,
+          emissive: 0xf59e0b,
+          emissiveIntensity: 0.6,
+          wireframe: true
+        })
+      );
+      chandelier.position.set(0, 5.5, 0);
+      roomGroup.add(chandelier);
+
+      // 비상 탈출 게이트 (Exit Door)
+      createExitGate();
+
+      // 테마별 고유 오브젝트 및 문제 조사 스팟 배치
+      buildThemeSpecificObjects(roomId);
+
+      // 기존 제작된 가구 재소환
+      placedFurnitures.forEach(furn => {
+        if (furn.roomId === roomId) {
+          spawnFurnitureMesh(furn, false);
+        }
+      });
+
+      // 캐릭터 위치 방 중앙 앞쪽으로 리셋
+      if (playerMesh) {
+        playerMesh.position.set(0, 0, 5);
+        playerMesh.rotation.y = Math.PI;
+      }
+    }
 
     scene.add(roomGroup);
-
-    // 캐릭터 위치 방 중앙 앞쪽으로 리셋
-    if (playerMesh) {
-      playerMesh.position.set(0, 0, 5);
-      playerMesh.rotation.y = Math.PI;
-    }
   }
 
   // 비상 탈출구 (Gate)
@@ -407,7 +465,547 @@ window.Game3D = (function() {
       // 인터랙티브 오브젝트 3: 장인의 부품함
       createToolBox(-5, 0, 2);
       addInteractiveSpot(-5, 0, 2, '장인의 부품 상자', 0x3b82f6, 'toolbox', 12);
+
+    } else if (roomId === 'room_5') {
+      // 5번 방: 힐링 공원 & 술래잡기 놀이 공간
+      buildParkObjects();
     }
+  }
+
+  // -------------------------------------------------------------
+  // [2-B] 5번 방: 힐링 공원 & 술래잡기 놀이 공간 빌더
+  // -------------------------------------------------------------
+  function buildParkObjects() {
+    // 1. 넓은 야외 잔디 바닥 (36 x 36)
+    const lawnGeo = new THREE.PlaneGeometry(36, 36);
+    const lawnMat = new THREE.MeshStandardMaterial({
+      color: 0x2e7d32,
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    const lawn = new THREE.Mesh(lawnGeo, lawnMat);
+    lawn.rotation.x = -Math.PI / 2;
+    lawn.receiveShadow = true;
+    roomGroup.add(lawn);
+
+    // 잔디 위 패턴 라인
+    const parkGrid = new THREE.GridHelper(36, 18, 0x166534, 0x15803d);
+    parkGrid.position.y = 0.01;
+    parkGrid.material.opacity = 0.25;
+    parkGrid.material.transparent = true;
+    roomGroup.add(parkGrid);
+
+    // 2. 십자형 및 원형 돌 산책로
+    createParkWalkways();
+
+    // 3. 중앙 분수대 (Stone Fountain)
+    createParkFountain(0, 0, 0);
+
+    // 4. 울창한 공원 나무들 (12그루 - 술래잡기 엄폐물)
+    const treePositions = [
+      [-10, 0, -10], [-5, 0, -12], [6, 0, -11], [11, 0, -8],
+      [-12, 0, -3], [-11, 0, 6], [12, 0, 2], [10, 0, 9],
+      [-7, 0, 11], [-2, 0, 12], [5, 0, 12], [11, 0, -2]
+    ];
+    treePositions.forEach((pos, idx) => {
+      createParkTree(pos[0], pos[1], pos[2], 0.9 + (idx % 3) * 0.2);
+    });
+
+    // 5. 공원 원목 벤치들 (6개 - 산책로 주변 및 나무 그늘 아래)
+    createParkBench(-4, 0, -3.5, 0);
+    createParkBench(4, 0, -3.5, 0);
+    createParkBench(-4, 0, 3.5, Math.PI);
+    createParkBench(4, 0, 3.5, Math.PI);
+    createParkBench(-7, 0, 6, Math.PI / 2);
+    createParkBench(7, 0, -6, -Math.PI / 2);
+
+    // 6. 피크닉 테이블 & 파라솔 (2개)
+    createPicnicTable(-8, 0, -6, 0xef4444); // 빨간 파라솔
+    createPicnicTable(8, 0, 6, 0x3b82f6);  // 파란 파라솔
+
+    // 7. 슈퍼 점프 트램펄린 (밟으면 하늘 높이 솟구침!)
+    createTrampoline(-7, 0, 3);
+
+    // 8. 놀이터 미끄럼틀 & 시소
+    createPlaygroundSlide(7, 0, -3);
+    createPlaygroundSeesaw(8, 0, 2);
+
+    // 9. 스피드 부스터 발판 (산책로 4곳 - 밟으면 3초간 2배속 가속!)
+    createSpeedBooster(0, 0.02, -5, 'north');
+    createSpeedBooster(0, 0.02, 5, 'south');
+    createSpeedBooster(-5, 0.02, 0, 'west');
+    createSpeedBooster(5, 0.02, 0, 'east');
+
+    // 10. 공원 가로등 (4개 코너에서 따뜻한 노란 조명)
+    createStreetLamp(-5, 0, -5);
+    createStreetLamp(5, 0, -5);
+    createStreetLamp(-5, 0, 5);
+    createStreetLamp(5, 0, 5);
+
+    // 11. 화단 및 꽃들
+    createFlowerBed(-2.5, 0, -5);
+    createFlowerBed(2.5, 0, -5);
+    createFlowerBed(-2.5, 0, 5);
+    createFlowerBed(2.5, 0, 5);
+
+    // 12. 공원 외곽 울타리 & 환영 아치
+    createParkFence();
+    createParkWelcomeArch(0, 0, 15);
+
+    // 13. 공원 쉼터 축하 안내 마커 (분수대 앞)
+    addInteractiveSpot(0, 0, -2.8, '힐링 공원 쉼터 안내판', 0x22c55e, 'park_sign', 99);
+  }
+
+  // 돌 산책로
+  function createParkWalkways() {
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.9 });
+
+    // 중앙 광장 (지름 8m 원형)
+    const plazaGeo = new THREE.CircleGeometry(4.2, 32);
+    const plaza = new THREE.Mesh(plazaGeo, walkMat);
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.y = 0.015;
+    plaza.receiveShadow = true;
+    roomGroup.add(plaza);
+
+    // 남북 산책로 (폭 2.6m, 길이 32m)
+    const pathNSGeo = new THREE.PlaneGeometry(2.6, 32);
+    const pathNS = new THREE.Mesh(pathNSGeo, walkMat);
+    pathNS.rotation.x = -Math.PI / 2;
+    pathNS.position.y = 0.012;
+    pathNS.receiveShadow = true;
+    roomGroup.add(pathNS);
+
+    // 동서 산책로 (폭 2.6m, 길이 32m)
+    const pathEWGeo = new THREE.PlaneGeometry(32, 2.6);
+    const pathEW = new THREE.Mesh(pathEWGeo, walkMat);
+    pathEW.rotation.x = -Math.PI / 2;
+    pathEW.position.y = 0.012;
+    pathEW.receiveShadow = true;
+    roomGroup.add(pathEW);
+  }
+
+  // 중앙 석조 분수대
+  function createParkFountain(x, y, z) {
+    const fGroup = new THREE.Group();
+    fGroup.position.set(x, y, z);
+
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+
+    // 1단 대형 수조
+    const outerBasin = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.6, 0.7, 32), stoneMat);
+    outerBasin.position.y = 0.35;
+    outerBasin.castShadow = true;
+    outerBasin.receiveShadow = true;
+    fGroup.add(outerBasin);
+
+    // 반짝이는 물 표면
+    const waterGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 32);
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.4,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.85
+    });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.position.y = 0.65;
+    fGroup.add(water);
+
+    // 2단 중앙 기둥 및 분수 노즐
+    const centerCol = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.65, 1.8, 16), stoneMat);
+    centerCol.position.y = 1.25;
+    centerCol.castShadow = true;
+    fGroup.add(centerCol);
+
+    const upperBasin = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.3, 0.4, 24), stoneMat);
+    upperBasin.position.y = 1.9;
+    fGroup.add(upperBasin);
+
+    // 분수대 물줄기 조각
+    const jetGeo = new THREE.ConeGeometry(0.4, 1.2, 16);
+    const jetMat = new THREE.MeshStandardMaterial({
+      color: 0x67e8f9,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.7,
+      transparent: true,
+      opacity: 0.8
+    });
+    const jet = new THREE.Mesh(jetGeo, jetMat);
+    jet.position.y = 2.6;
+    fGroup.add(jet);
+
+    roomGroup.add(fGroup);
+    addCircleCollider(x, z, 2.6);
+  }
+
+  // 울창한 공원 나무 생성 (술래잡기 엄폐물)
+  function createParkTree(x, y, z, scale = 1.0) {
+    const treeGroup = new THREE.Group();
+    treeGroup.position.set(x, y, z);
+
+    // 통나무 기둥
+    const trunkGeo = new THREE.CylinderGeometry(0.3 * scale, 0.45 * scale, 2.2 * scale, 10);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3818, roughness: 0.9 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 1.1 * scale;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    treeGroup.add(trunk);
+
+    // 풍성한 3단 잎사귀
+    const leafColors = [0x166534, 0x15803d, 0x22c55e, 0x4ade80];
+    for (let i = 0; i < 3; i++) {
+      const radius = (1.7 - i * 0.35) * scale;
+      const height = (1.5 - i * 0.2) * scale;
+      const foliageGeo = new THREE.ConeGeometry(radius, height, 8);
+      const foliageMat = new THREE.MeshStandardMaterial({
+        color: leafColors[i % leafColors.length],
+        roughness: 0.8
+      });
+      const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+      foliage.position.y = (2.0 + i * 0.9) * scale;
+      foliage.castShadow = true;
+      foliage.receiveShadow = true;
+      treeGroup.add(foliage);
+    }
+
+    roomGroup.add(treeGroup);
+    addCircleCollider(x, z, 0.65 * scale);
+  }
+
+  // 공원 원목 벤치
+  function createParkBench(x, y, z, rotY = 0) {
+    const benchGroup = new THREE.Group();
+    benchGroup.position.set(x, y, z);
+    benchGroup.rotation.y = rotY;
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.7 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 });
+
+    // 좌판 슬랫들
+    for (let s = -0.3; s <= 0.3; s += 0.2) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.16), woodMat);
+      plank.position.set(0, 0.6, s);
+      plank.castShadow = true;
+      benchGroup.add(plank);
+    }
+
+    // 등받이 슬랫들
+    for (let b = 0.85; b <= 1.25; b += 0.2) {
+      const back = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 0.08), woodMat);
+      back.position.set(0, b, -0.35);
+      back.castShadow = true;
+      benchGroup.add(back);
+    }
+
+    // 철제 다리 2개
+    const legGeo = new THREE.BoxGeometry(0.1, 0.6, 0.8);
+    const legL = new THREE.Mesh(legGeo, ironMat);
+    legL.position.set(-0.9, 0.3, 0);
+    const legR = new THREE.Mesh(legGeo, ironMat);
+    legR.position.set(0.9, 0.3, 0);
+    benchGroup.add(legL);
+    benchGroup.add(legR);
+
+    roomGroup.add(benchGroup);
+    if (Math.abs(rotY) < 0.1 || Math.abs(rotY - Math.PI) < 0.1) {
+      addBoxCollider(x, z, 2.4, 0.9);
+    } else {
+      addBoxCollider(x, z, 0.9, 2.4);
+    }
+  }
+
+  // 피크닉 테이블 & 파라솔
+  function createPicnicTable(x, y, z, parasolColor = 0xef4444) {
+    const tGroup = new THREE.Group();
+    tGroup.position.set(x, y, z);
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.8 });
+
+    // 테이블 상판
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.1, 1.2), woodMat);
+    tableTop.position.y = 0.9;
+    tableTop.castShadow = true;
+    tGroup.add(tableTop);
+
+    // 양쪽 벤치
+    const benchL = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 0.4), woodMat);
+    benchL.position.set(0, 0.5, -0.9);
+    const benchR = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 0.4), woodMat);
+    benchR.position.set(0, 0.5, 0.9);
+    tGroup.add(benchL, benchR);
+
+    // 파라솔 기둥 및 차양
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, 3.2, 8),
+      new THREE.MeshStandardMaterial({ color: 0x475569 })
+    );
+    pole.position.y = 1.6;
+    tGroup.add(pole);
+
+    const umbrellaGeo = new THREE.ConeGeometry(1.6, 0.8, 8);
+    const umbrellaMat = new THREE.MeshStandardMaterial({ color: parasolColor, roughness: 0.5 });
+    const umbrella = new THREE.Mesh(umbrellaGeo, umbrellaMat);
+    umbrella.position.y = 3.0;
+    umbrella.castShadow = true;
+    tGroup.add(umbrella);
+
+    roomGroup.add(tGroup);
+    addBoxCollider(x, z, 2.2, 2.4);
+  }
+
+  // 슈퍼 점프 트램펄린
+  function createTrampoline(x, y, z) {
+    const tGroup = new THREE.Group();
+    tGroup.position.set(x, y, z);
+
+    // 외곽 링 프레임
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6, roughness: 0.3 });
+    const ringGeo = new THREE.TorusGeometry(1.8, 0.12, 16, 32);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.65;
+    tGroup.add(ring);
+
+    // 탄력 바닥 매트 (검정색 탄성 매트)
+    const matGeo = new THREE.CylinderGeometry(1.7, 1.7, 0.08, 32);
+    const matMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+    const mat = new THREE.Mesh(matGeo, matMat);
+    mat.position.y = 0.62;
+    tGroup.add(mat);
+
+    // 중앙 노란 별모양 타겟 링
+    const starGeo = new THREE.RingGeometry(0.3, 0.6, 16);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide });
+    const star = new THREE.Mesh(starGeo, starMat);
+    star.rotation.x = -Math.PI / 2;
+    star.position.y = 0.68;
+    tGroup.add(star);
+
+    // 4개 철제 지지대 다리
+    const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.65, 8);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2;
+      const leg = new THREE.Mesh(legGeo, legMat);
+      leg.position.set(Math.cos(angle) * 1.6, 0.325, Math.sin(angle) * 1.6);
+      tGroup.add(leg);
+    }
+
+    roomGroup.add(tGroup);
+    trampolines.push({ x: x, z: z, radius: 1.8 });
+  }
+
+  // 놀이터 미끄럼틀
+  function createPlaygroundSlide(x, y, z) {
+    const sGroup = new THREE.Group();
+    sGroup.position.set(x, y, z);
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+    const slideMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.2 });
+
+    // 타워 발판
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 1.2), woodMat);
+    tower.position.set(0, 0.9, -1.2);
+    sGroup.add(tower);
+
+    // 경사 미끄럼틀 램프
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 3.2), slideMat);
+    ramp.rotation.x = Math.PI / 6;
+    ramp.position.set(0, 0.9, 0.5);
+    ramp.castShadow = true;
+    sGroup.add(ramp);
+
+    roomGroup.add(sGroup);
+    addBoxCollider(x, z, 1.6, 3.2);
+  }
+
+  // 놀이터 시소
+  function createPlaygroundSeesaw(x, y, z) {
+    const seeGroup = new THREE.Group();
+    seeGroup.position.set(x, y, z);
+
+    // 중앙 삼각 받침대
+    const base = new THREE.Mesh(
+      new THREE.ConeGeometry(0.4, 0.8, 4),
+      new THREE.MeshStandardMaterial({ color: 0x334155 })
+    );
+    base.position.y = 0.4;
+    seeGroup.add(base);
+
+    // 시소 널판지 (살짝 기울어짐)
+    const plank = new THREE.Mesh(
+      new THREE.BoxGeometry(3.0, 0.08, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
+    );
+    plank.position.y = 0.75;
+    plank.rotation.z = Math.PI / 16;
+    plank.castShadow = true;
+    seeGroup.add(plank);
+
+    roomGroup.add(seeGroup);
+    addBoxCollider(x, z, 3.0, 0.8);
+  }
+
+  // 스피드 부스터 발판
+  function createSpeedBooster(x, y, z, dir) {
+    const bGroup = new THREE.Group();
+    bGroup.position.set(x, y, z);
+
+    // 빛나는 네온 패드
+    const padGeo = new THREE.PlaneGeometry(1.8, 1.8);
+    const padMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.8,
+      roughness: 0.2
+    });
+    const pad = new THREE.Mesh(padGeo, padMat);
+    pad.rotation.x = -Math.PI / 2;
+    bGroup.add(pad);
+
+    // 화살표 셰이프
+    const arrowGeo = new THREE.ConeGeometry(0.45, 0.8, 3);
+    const arrowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+    arrow.rotation.x = -Math.PI / 2;
+    if (dir === 'north') arrow.rotation.z = 0;
+    else if (dir === 'south') arrow.rotation.z = Math.PI;
+    else if (dir === 'west') arrow.rotation.z = Math.PI / 2;
+    else if (dir === 'east') arrow.rotation.z = -Math.PI / 2;
+    arrow.position.y = 0.03;
+    bGroup.add(arrow);
+
+    roomGroup.add(bGroup);
+    boosters.push({ x: x, z: z, radius: 1.4 });
+  }
+
+  // 클래식 가로등
+  function createStreetLamp(x, y, z) {
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(x, y, z);
+
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
+
+    // 기둥
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.6, 8), ironMat);
+    pole.position.y = 1.8;
+    lampGroup.add(pole);
+
+    // 등갓
+    const head = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.35),
+      new THREE.MeshStandardMaterial({
+        color: 0xfef08a,
+        emissive: 0xfbbf24,
+        emissiveIntensity: 0.9,
+        wireframe: true
+      })
+    );
+    head.position.y = 3.6;
+    lampGroup.add(head);
+
+    // 가로등 조명
+    const light = new THREE.PointLight(0xfef08a, 0.8, 8);
+    light.position.y = 3.5;
+    lampGroup.add(light);
+
+    roomGroup.add(lampGroup);
+    addCircleCollider(x, z, 0.4);
+  }
+
+  // 예쁜 꽃밭
+  function createFlowerBed(x, y, z) {
+    const bedGroup = new THREE.Group();
+    bedGroup.position.set(x, y, z);
+
+    // 화단 테두리 흙
+    const earth = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 0.15, 1.2),
+      new THREE.MeshStandardMaterial({ color: 0x3f2e1e })
+    );
+    earth.position.y = 0.08;
+    bedGroup.add(earth);
+
+    // 알록달록 꽃들 (작은 구체)
+    const flowerColors = [0xef4444, 0xf59e0b, 0xec4899, 0xa855f7, 0xffffff];
+    for (let i = -0.9; i <= 0.9; i += 0.4) {
+      for (let j = -0.35; j <= 0.35; j += 0.35) {
+        const flower = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(0.12),
+          new THREE.MeshStandardMaterial({
+            color: flowerColors[Math.floor(Math.random() * flowerColors.length)]
+          })
+        );
+        flower.position.set(i + (Math.random() - 0.5) * 0.1, 0.25, j);
+        bedGroup.add(flower);
+      }
+    }
+
+    roomGroup.add(bedGroup);
+  }
+
+  // 공원 외곽 울타리
+  function createParkFence() {
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.6 });
+    const postGeo = new THREE.BoxGeometry(0.25, 1.4, 0.25);
+    const railGeoX = new THREE.BoxGeometry(33, 0.12, 0.1);
+    const railGeoZ = new THREE.BoxGeometry(0.1, 0.12, 33);
+
+    // 가로 레일 4면
+    const railN = new THREE.Mesh(railGeoX, fenceMat);
+    railN.position.set(0, 0.9, -16.5);
+    const railS1 = new THREE.Mesh(new THREE.BoxGeometry(13, 0.12, 0.1), fenceMat);
+    railS1.position.set(-9.5, 0.9, 16.5);
+    const railS2 = new THREE.Mesh(new THREE.BoxGeometry(13, 0.12, 0.1), fenceMat);
+    railS2.position.set(9.5, 0.9, 16.5);
+    const railW = new THREE.Mesh(railGeoZ, fenceMat);
+    railW.position.set(-16.5, 0.9, 0);
+    const railE = new THREE.Mesh(railGeoZ, fenceMat);
+    railE.position.set(16.5, 0.9, 0);
+
+    roomGroup.add(railN, railS1, railS2, railW, railE);
+
+    // 기둥들
+    for (let x = -16.5; x <= 16.5; x += 3.3) {
+      const postN = new THREE.Mesh(postGeo, fenceMat);
+      postN.position.set(x, 0.7, -16.5);
+      roomGroup.add(postN);
+
+      if (Math.abs(x) > 3) {
+        const postS = new THREE.Mesh(postGeo, fenceMat);
+        postS.position.set(x, 0.7, 16.5);
+        roomGroup.add(postS);
+      }
+
+      const postW = new THREE.Mesh(postGeo, fenceMat);
+      postW.position.set(-16.5, 0.7, x);
+      const postE = new THREE.Mesh(postGeo, fenceMat);
+      postE.position.set(16.5, 0.7, x);
+      roomGroup.add(postW, postE);
+    }
+  }
+
+  // 공원 환영 아치 (Welcome Arch)
+  function createParkWelcomeArch(x, y, z) {
+    const archGroup = new THREE.Group();
+    archGroup.position.set(x, y, z);
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+    const postL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.0, 0.5), woodMat);
+    postL.position.set(-2.5, 2.0, 0);
+    const postR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.0, 0.5), woodMat);
+    postR.position.set(2.5, 2.0, 0);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.6, 0.6), woodMat);
+    beam.position.set(0, 4.0, 0);
+
+    archGroup.add(postL, postR, beam);
+    roomGroup.add(archGroup);
+
+    addBoxCollider(x - 2.5, z, 0.6, 0.6);
+    addBoxCollider(x + 2.5, z, 0.6, 0.6);
   }
 
   // 상호작용 가능한 문제 스팟 마커 추가
@@ -1537,6 +2135,13 @@ window.Game3D = (function() {
     window.addEventListener('keydown', e => {
       keysDown[e.code] = true;
 
+      // Space키: 점프 (공원 벤치 뛰어넘기 & 점프 놀이)
+      if (e.code === 'Space') {
+        if (isGrounded) {
+          playerVelocityY = 9.0;
+          isGrounded = false;
+        }
+      }
       // E키: 상호작용 (조사하기)
       if (e.code === 'KeyE') {
         triggerNearbyInspect();
@@ -1660,16 +2265,65 @@ window.Game3D = (function() {
       moveZ += joystickVector.y;
     }
 
+    // 공원 전용 인터랙티브 피처 (트램펄린 슈퍼 점프 & 스피드 부스터)
+    if (currentRoomId === 'room_5' && playerMesh) {
+      // 1) 트램펄린 체크 (밟으면 슈퍼 점프!)
+      trampolines.forEach(t => {
+        const dx = playerMesh.position.x - t.x;
+        const dz = playerMesh.position.z - t.z;
+        if (dx * dx + dz * dz < t.radius * t.radius && isGrounded) {
+          playerVelocityY = 16.5; // 슈퍼 점프!
+          isGrounded = false;
+          if (window.App && window.App.showToast) {
+            window.App.showToast('🚀 트램펄린 슈퍼 점프! ✨', 1200);
+          }
+          if (window.confetti) {
+            window.confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+          }
+        }
+      });
+
+      // 2) 스피드 부스터 패드 체크 (밟으면 3.5초간 2배속 가속)
+      boosters.forEach(b => {
+        const dx = playerMesh.position.x - b.x;
+        const dz = playerMesh.position.z - b.z;
+        if (dx * dx + dz * dz < b.radius * b.radius && parkBoostTime <= 0) {
+          parkBoostTime = 3.5;
+          if (window.App && window.App.showToast) {
+            window.App.showToast('⚡ 스피드 부스터 발동! (3초간 2배속 질주) 🏃‍♂️💨', 1500);
+          }
+        }
+      });
+    }
+
+    if (parkBoostTime > 0) {
+      parkBoostTime -= delta;
+    }
+
     const inputLen = Math.sqrt(moveX * moveX + moveZ * moveZ);
     const isMoving = inputLen > 0.1;
 
     if (playerMesh) {
+      // 수직 점프 및 중력 물리
+      if (!isGrounded || playerMesh.position.y > 0) {
+        playerVelocityY -= 28.0 * delta;
+        playerMesh.position.y += playerVelocityY * delta;
+        if (playerMesh.position.y <= 0) {
+          playerMesh.position.y = 0;
+          playerVelocityY = 0;
+          isGrounded = true;
+        }
+      }
+
       if (isMoving) {
         // 정규화
         const normX = moveX / (inputLen || 1);
         const normZ = moveZ / (inputLen || 1);
 
-        const currentSpeed = (keysDown['ShiftLeft'] || moveState.isRunning) ? 8.0 : 5.0;
+        let currentSpeed = (keysDown['ShiftLeft'] || moveState.isRunning) ? 8.0 : 5.0;
+        if (parkBoostTime > 0) {
+          currentSpeed = 13.5; // 부스터 가속 속도!
+        }
         const stepX = normX * currentSpeed * delta;
         const stepZ = normZ * currentSpeed * delta;
 
@@ -1782,6 +2436,29 @@ window.Game3D = (function() {
     defaultCustomData: defaultCustomData,
     toggleRunning: function(state) {
       moveState.isRunning = state;
+    },
+    getCurrentRoomId: function() {
+      return currentRoomId;
+    },
+    toggleTagRole: function() {
+      tagRole = (tagRole === 'runner') ? 'tagger' : 'runner';
+      const pill = document.getElementById('tag-role-pill');
+      if (pill) {
+        if (tagRole === 'tagger') {
+          pill.className = 'tag-role-pill role-tagger';
+          pill.innerHTML = '<i class="fa-solid fa-bullseye"></i> 술래 🎯';
+        } else {
+          pill.className = 'tag-role-pill role-runner';
+          pill.innerHTML = '<i class="fa-solid fa-person-running"></i> 도망자 🏃';
+        }
+      }
+      return tagRole;
+    },
+    getTagRole: function() {
+      return tagRole;
+    },
+    triggerParkBoost: function() {
+      parkBoostTime = 3.5;
     }
   };
 })();

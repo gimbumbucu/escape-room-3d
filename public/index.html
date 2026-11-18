@@ -239,12 +239,13 @@
         </div>
       </div>
 
-      <!-- 방 이동 탭 버튼 (1번 방 도서관, 2번 방 과학실, 3번 방 박물관, 4번 방 공방) -->
+      <!-- 방 이동 탭 버튼 (1번 방 도서관, 2번 방 과학실, 3번 방 박물관, 4번 방 공방, 5번 힐링 공원) -->
       <div class="room-nav-tabs" id="room-nav-tabs">
         <button class="room-tab active" data-room="room_1"><i class="fa-solid fa-book"></i> 1번 방 도서관</button>
         <button class="room-tab" data-room="room_2"><i class="fa-solid fa-flask"></i> 2번 방 과학실</button>
         <button class="room-tab" data-room="room_3"><i class="fa-solid fa-landmark"></i> 3번 방 박물관</button>
         <button class="room-tab" data-room="room_4"><i class="fa-solid fa-hammer"></i> 4번 방 공방</button>
+        <button class="room-tab park-tab" data-room="room_5" id="tab-room-5"><i class="fa-solid fa-tree"></i> 5번 힐링공원 🌳</button>
       </div>
 
       <!-- 우측 상단 유틸리티 버튼 -->
@@ -260,6 +261,28 @@
         </button>
       </div>
     </header>
+
+    <!-- 플로팅 토스트 안내 바 (방 이동 및 부스터 알림) -->
+    <div id="game-toast-banner" class="game-toast-banner hidden">
+      <span class="toast-icon" id="game-toast-icon">🚀</span>
+      <span class="toast-text" id="game-toast-text">다음 방으로 이동합니다!</span>
+    </div>
+
+    <!-- 5번 방 공원 전용 술래잡기 HUD -->
+    <div id="park-tag-hud" class="park-tag-hud hidden">
+      <div class="tag-status-box">
+        <span class="tag-park-badge">🌳 힐링 & 술래잡기 공원</span>
+        <span class="tag-role-pill role-runner" id="tag-role-pill"><i class="fa-solid fa-person-running"></i> 도망자</span>
+      </div>
+      <div class="tag-ctrl-buttons">
+        <button id="btn-toggle-tag-role" class="btn-tag-pill" title="술래 / 도망자 역할 전환">
+          <i class="fa-solid fa-repeat"></i> <span>역할 바꾸기</span>
+        </button>
+        <button id="btn-park-super-boost" class="btn-tag-pill btn-boost-pill" title="스피드 대시">
+          <i class="fa-solid fa-bolt"></i> <span>대시 가속!</span>
+        </button>
+      </div>
+    </div>
 
     <!-- 탈출 목표 프로그레스 알림 바 -->
     <div class="escape-goal-bar" id="escape-goal-bar">
@@ -681,6 +704,7 @@
               <option value="room_2">2번 방 - 과학실</option>
               <option value="room_3">3번 방 - 박물관</option>
               <option value="room_4">4번 방 - 공방</option>
+              <option value="room_5">5번 방 - 힐링 공원</option>
             </select>
           </div>
           <div class="form-group flex-2">
@@ -738,6 +762,39 @@
           <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> 저장하기</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- [모달 8] 힐링 공원 안내 & 술래잡기 놀이 가이드 팝업          -->
+  <!-- ============================================================ -->
+  <div id="modal-park-guide" class="modal-overlay hidden">
+    <div class="modal-card modal-park-guide-card">
+      <div class="modal-header park-guide-header">
+        <h3 style="color:#fff; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-tree" style="color:#86efac;"></i> 5번 방 힐링 공원 & 술래잡기 쉼터
+        </h3>
+        <button class="btn-modal-close" id="btn-close-park-guide"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body park-guide-body">
+        <div class="park-guide-banner">🎉 모든 방의 문제를 풀고 신비한 아카데미 탈출 성공! 🏆</div>
+        <p class="park-guide-desc">이곳은 모든 미션을 완수한 학생들을 위해 마련된 드넓은 야외 휴식 공원입니다. 친구들과 함께 자유롭게 뛰어놀며 술래잡기를 즐겨보세요!</p>
+        <div class="park-features-list">
+          <div class="feat-item"><span class="feat-icon">🚀</span><div><strong>슈퍼 트램펄린:</strong> 공원 안쪽의 트램펄린을 밟으면 하늘 높이 솟구쳐 오릅니다!</div></div>
+          <div class="feat-item"><span class="feat-icon">⚡</span><div><strong>스피드 부스터 패드:</strong> 바닥의 빛나는 화살표를 밟으면 3초간 2배속으로 빠르게 달립니다!</div></div>
+          <div class="feat-item"><span class="feat-icon">🪑</span><div><strong>원목 벤치 & 피크닉 테이블:</strong> 그늘 아래 벤치에서 쉬거나 점프로 올라가 술래를 따돌릴 수 있습니다.</div></div>
+          <div class="feat-item"><span class="feat-icon">⛲</span><div><strong>중앙 분수대 & 꽃밭:</strong> 시원한 물줄기가 뿜어져 나오는 분수대와 예쁜 꽃들이 반겨줍니다.</div></div>
+          <div class="feat-item"><span class="feat-icon">🏃</span><div><strong>술래잡기 모드:</strong> 상단 [역할 바꾸기] 버튼으로 [술래]와 [도망자] 역할을 정하고 스릴 넘치는 술래잡기를 해보세요!</div></div>
+        </div>
+        <div class="park-guide-controls">
+          <span class="ctrl-tag"><kbd>Space</kbd> 점프</span>
+          <span class="ctrl-tag"><kbd>Shift</kbd> 달리기</span>
+          <span class="ctrl-tag"><kbd>W,A,S,D</kbd> 이동</span>
+        </div>
+        <button id="btn-confirm-park-guide" class="btn btn-primary btn-block btn-park-enter">
+          <i class="fa-solid fa-tree"></i> 신나게 놀기 시작!
+        </button>
+      </div>
     </div>
   </div>
 

@@ -104,6 +104,14 @@
       "color": "#38291f",
       "ambientColor": "#ffddaa",
       "description": "뜨거운 제련 화로와 톱, 망치 소리가 머무는 제작 공방입니다."
+    },
+    {
+      "id": "room_5",
+      "name": "5번 방 - 힐링 공원",
+      "theme": "park",
+      "color": "#1b4d21",
+      "ambientColor": "#e8f5e9",
+      "description": "모든 미션을 완수하고 즐기는 야외 힐링 공원입니다. 나무와 벤치, 분수대, 트램펄린, 부스터 패드에서 술래잡기를 즐겨보세요!"
     }
   ],
   "questions": [

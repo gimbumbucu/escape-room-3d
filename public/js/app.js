@@ -614,12 +614,37 @@ window.App = (function () {
     const roomTabs = document.querySelectorAll('.room-tab');
     roomTabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        roomTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
         const targetRoom = tab.dataset.room;
-        Game3D.buildRoom(targetRoom);
+        switchRoom(targetRoom);
       });
     });
+
+    // 5번 방 힐링 공원 술래잡기 HUD 버튼들
+    const btnToggleTag = document.getElementById('btn-toggle-tag-role');
+    if (btnToggleTag) {
+      btnToggleTag.addEventListener('click', () => {
+        const newRole = Game3D.toggleTagRole();
+        showToast('🎭 역할 변경: ' + (newRole === 'tagger' ? '술래 🎯 (친구들을 터치해 잡으세요!)' : '도망자 🏃 (술래를 피해 도망치세요!)'), 2500);
+      });
+    }
+
+    const btnParkBoost = document.getElementById('btn-park-super-boost');
+    if (btnParkBoost) {
+      btnParkBoost.addEventListener('click', () => {
+        Game3D.triggerParkBoost();
+        showToast('⚡ 스피드 부스터 가속 발동! (3초간 2배속) 🏃‍♂️💨', 2000);
+      });
+    }
+
+    // 힐링 공원 안내 팝업 닫기
+    const closeParkGuide = () => {
+      const modal = document.getElementById('modal-park-guide');
+      if (modal) modal.classList.add('hidden');
+    };
+    const btnCloseGuide = document.getElementById('btn-close-park-guide');
+    if (btnCloseGuide) btnCloseGuide.addEventListener('click', closeParkGuide);
+    const btnConfirmGuide = document.getElementById('btn-confirm-park-guide');
+    if (btnConfirmGuide) btnConfirmGuide.addEventListener('click', closeParkGuide);
 
     // 상호작용 프롬프트 버튼
     document.getElementById('btn-prompt-inspect').addEventListener('click', () => {
@@ -630,6 +655,35 @@ window.App = (function () {
     document.getElementById('btn-try-escape').addEventListener('click', () => {
       handleFinalEscape();
     });
+  }
+
+  // 방 전환 공통 함수
+  function switchRoom(targetRoomId) {
+    const roomTabs = document.querySelectorAll('.room-tab');
+    roomTabs.forEach(t => {
+      if (t.dataset.room === targetRoomId) {
+        t.classList.add('active');
+      } else {
+        t.classList.remove('active');
+      }
+    });
+    Game3D.buildRoom(targetRoomId);
+  }
+
+  // 플로팅 토스트 안내 배너
+  let toastTimer = null;
+  function showToast(msg, duration = 2500) {
+    const banner = document.getElementById('game-toast-banner');
+    const textEl = document.getElementById('game-toast-text');
+    if (!banner || !textEl) return;
+
+    textEl.textContent = msg;
+    banner.classList.remove('hidden');
+
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      banner.classList.add('hidden');
+    }, duration);
   }
 
   function updateHudInfo() {
@@ -709,6 +763,13 @@ window.App = (function () {
   // -------------------------------------------------------------
   function onInspectObject(nearbyObject) {
     if (!nearbyObject) return;
+
+    // 5번 방 힐링 공원 안내판 조사 시
+    if (nearbyObject.type === 'park_sign' || nearbyObject.defaultQId === 99) {
+      const guideModal = document.getElementById('modal-park-guide');
+      if (guideModal) guideModal.classList.remove('hidden');
+      return;
+    }
 
     // 해당 오브젝트에 해당하는 문제 찾기
     let targetQuestion = gameConfig.questions.find(q => q.title === nearbyObject.title);
@@ -807,10 +868,44 @@ window.App = (function () {
         // 보기 비활성화
         document.querySelectorAll('.btn-q-option').forEach(b => b.disabled = true);
 
-        // 1.5초 후 모달 닫기
+        // 다음 방 자동 순차 이동 계산 (1번 방 -> 2번 방 -> 3번 방 -> 4번 방 -> 5번 방 힐링 공원)
+        const currentRoom = Game3D.getCurrentRoomId();
+        let nextRoom = null;
+        let nextRoomName = '';
+
+        if (currentRoom === 'room_1') {
+          nextRoom = 'room_2';
+          nextRoomName = '2번 방 과학실';
+        } else if (currentRoom === 'room_2') {
+          nextRoom = 'room_3';
+          nextRoomName = '3번 방 박물관';
+        } else if (currentRoom === 'room_3') {
+          nextRoom = 'room_4';
+          nextRoomName = '4번 방 공방';
+        } else if (currentRoom === 'room_4') {
+          nextRoom = 'room_5';
+          nextRoomName = '5번 방 힐링 공원 & 술래잡기 쉼터 🌳';
+        }
+
+        if (nextRoom) {
+          feedbackEl.innerHTML = `${data.message}<br><strong style="color: #67e8f9; font-size: 15px; margin-top: 8px; display: inline-block;">🚀 정답! 잠시 후 ${nextRoomName}로 이동합니다!</strong>`;
+        }
+
+        // 1.5초 후 모달 닫고 다음 방으로 자동 이동!
         setTimeout(() => {
           document.getElementById('modal-question').classList.add('hidden');
-        }, 1500);
+          if (nextRoom) {
+            switchRoom(nextRoom);
+            if (nextRoom === 'room_5') {
+              showToast('🎉 모든 문제를 풀었습니다! 힐링 공원에서 술래잡기와 놀이기구를 즐겨보세요! 🌳', 4500);
+              if (window.confetti) {
+                window.confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
+              }
+            } else {
+              showToast(`🚪 ${nextRoomName}에 입장했습니다!`, 2500);
+            }
+          }
+        }, 1600);
       } else {
         // 오답 피드백
         feedbackEl.className = 'q-feedback incorrect';
@@ -1122,7 +1217,9 @@ window.App = (function () {
   return {
     init: init,
     onInspectObject: onInspectObject,
-    refreshGameConfig: fetchGameConfig
+    refreshGameConfig: fetchGameConfig,
+    showToast: showToast,
+    switchRoom: switchRoom
   };
 })();
 

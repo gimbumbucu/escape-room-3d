@@ -877,6 +877,236 @@ html {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* 5번 방 힐링 공원 전용 탭 스타일 */
+.room-tab.park-tab {
+  color: #86efac;
+}
+
+.room-tab.park-tab.active {
+  background: #16a34a !important;
+  color: #ffffff;
+  box-shadow: 0 2px 14px rgba(34, 197, 94, 0.55);
+}
+
+/* 상단 플로팅 토스트 안내 배너 (방 이동 및 부스터 알림) */
+.game-toast-banner {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid #38bdf8;
+  color: #f0fdf4;
+  padding: 10px 22px;
+  border-radius: 50px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.35);
+  font-size: 14px;
+  font-weight: 700;
+  animation: toastPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+@keyframes toastPop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.toast-icon {
+  font-size: 18px;
+}
+
+/* 5번 방 공원 전용 술래잡기 HUD */
+.park-tag-hud {
+  position: absolute;
+  top: 75px;
+  right: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(13, 21, 38, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tag-status-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-park-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: #86efac;
+}
+
+.tag-role-pill {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 50px;
+}
+
+.tag-role-pill.role-runner {
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
+}
+
+.tag-role-pill.role-tagger {
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  animation: pulse 1.2s infinite;
+}
+
+.tag-ctrl-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-tag-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.btn-tag-pill:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-boost-pill {
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+  border-color: #fde047;
+  color: #0f172a;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+.btn-boost-pill:hover {
+  filter: brightness(1.1);
+}
+
+/* 힐링 공원 가이드 모달 */
+.modal-park-guide-card {
+  max-width: 580px;
+}
+
+.park-guide-header {
+  background: linear-gradient(135deg, #15803d, #166534);
+  padding: 16px 20px;
+}
+
+.park-guide-body {
+  padding: 22px;
+}
+
+.park-guide-banner {
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid #22c55e;
+  color: #86efac;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.park-guide-desc {
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.park-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(10, 15, 30, 0.5);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.feat-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.feat-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.park-guide-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ctrl-tag {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-light);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ctrl-tag kbd {
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid #475569;
+  font-weight: 700;
+}
+
+.btn-park-enter {
+  background: #16a34a !important;
+  border-color: #22c55e !important;
+  font-size: 15px !important;
+  padding: 12px !important;
+}
+
+.btn-park-enter:hover {
+  background: #15803d !important;
+}
+
 /* 우측 상단 HUD 액션 */
 .hud-right-group {
   display: flex;
