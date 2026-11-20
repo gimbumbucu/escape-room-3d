@@ -1445,8 +1445,8 @@ window.Game3D = (function() {
     let startX = 0;
     let startZ = 0;
     if (playerMesh) {
-      const fX = -Math.sin(playerMesh.rotation.y);
-      const fZ = -Math.cos(playerMesh.rotation.y);
+      const fX = Math.sin(playerMesh.rotation.y);
+      const fZ = Math.cos(playerMesh.rotation.y);
       startX = playerMesh.position.x + fX * 2.5;
       startZ = playerMesh.position.z + fZ * 2.5;
     }
@@ -1484,8 +1484,8 @@ window.Game3D = (function() {
   // 플레이어 앞자리로 이동
   function placeInFrontOfPlayer() {
     if (!placementMode || !placementGhostGroup || !playerMesh) return;
-    const fX = -Math.sin(playerMesh.rotation.y);
-    const fZ = -Math.cos(playerMesh.rotation.y);
+    const fX = Math.sin(playerMesh.rotation.y);
+    const fZ = Math.cos(playerMesh.rotation.y);
     const maxBound = (currentRoomId === 'room_5') ? 15.0 : 9.5;
     placementPos.x = Math.max(-maxBound, Math.min(maxBound, playerMesh.position.x + fX * 2.5));
     placementPos.z = Math.max(-maxBound, Math.min(maxBound, playerMesh.position.z + fZ * 2.5));
@@ -2617,9 +2617,16 @@ window.Game3D = (function() {
           playerMesh.position.z = nextZ;
         }
 
-        // 캐릭터 진행 방향 회전
+        // 캐릭터 진행 방향 최단 회전각 보간 (Shortest Angle Interpolation)
+        // W(직진)에서 A(좌회전) 전환 시 150도~270도 반대로 헛돌지 않고 깔끔하게 90도 회전
         const targetAngle = Math.atan2(normX, normZ);
-        playerMesh.rotation.y = THREE.MathUtils.lerp(playerMesh.rotation.y, targetAngle, 0.2);
+        let angleDiff = targetAngle - playerMesh.rotation.y;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        playerMesh.rotation.y += angleDiff * 0.35;
+
+        while (playerMesh.rotation.y < -Math.PI) playerMesh.rotation.y += Math.PI * 2;
+        while (playerMesh.rotation.y > Math.PI) playerMesh.rotation.y -= Math.PI * 2;
 
         // 걷기/달리기 애니메이션 (팔/다리 스윙)
         walkAnimTime += delta * currentSpeed * 2.2;
