@@ -250,6 +250,13 @@ window.Game3D = (function() {
       // 공원 3D 전체 빌드
       buildParkObjects();
 
+      // 공원에서도 제작/배치된 가구 소환!
+      placedFurnitures.forEach(furn => {
+        if (furn.roomId === 'room_5') {
+          spawnFurnitureMesh(furn, false);
+        }
+      });
+
       // 공원 술래잡기 HUD 표시
       const parkHud = document.getElementById('park-tag-hud');
       if (parkHud) parkHud.classList.remove('hidden');
@@ -1305,49 +1312,52 @@ window.Game3D = (function() {
   }
 
   // -------------------------------------------------------------
-  // [4] 가구 제작 시 방에 3D 가구 소환 (Spawn Furniture)
+  // [4] 가구 제작 및 방 꾸미기: 실시간 3D 가구 배치 시스템
   // -------------------------------------------------------------
-  function spawnFurniture(furnitureData) {
-    const furnObj = {
-      ...furnitureData,
-      roomId: currentRoomId,
-      instanceId: 'inst_' + Date.now()
-    };
-    placedFurnitures.push(furnObj);
-    spawnFurnitureMesh(furnObj, true);
-  }
+  let placementMode = false;
+  let placementFurnData = null;
+  let placementGhostGroup = null;
+  let placementRotation = 0;
+  let placementPos = { x: 0, z: 0 };
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const placementRaycaster = new THREE.Raycaster();
+  const placementMouse = new THREE.Vector2();
 
-  function spawnFurnitureMesh(furnObj, playFx) {
-    if (!roomGroup) return;
-
-    // 배치할 위치 (방 내부의 슬롯에 순차 배치)
-    const slotIdx = placedFurnitures.filter(f => f.roomId === currentRoomId).indexOf(furnObj);
-    const slots = [
-      { x: -3, z: 1 },
-      { x: 3, z: 1 },
-      { x: -6, z: 4 },
-      { x: 6, z: 4 },
-      { x: 0, z: 2 }
-    ];
-    const pos = slots[slotIdx % slots.length] || { x: 0, z: 0 };
-
+  // 가구 3D 모델 그룹 생성 함수 (실제 가구 및 반투명 배치 고스트 공용)
+  function createFurnitureModel(modelType, isGhost = false) {
     const fGroup = new THREE.Group();
-    fGroup.position.set(pos.x, 0, pos.z);
+    const type = modelType || 'chair';
 
-    const type = furnObj.modelType || 'chair';
+    const getMat = (col, metal = 0.1, rough = 0.7) => {
+      if (isGhost) {
+        return new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.55,
+          transparent: true,
+          opacity: 0.65,
+          roughness: 0.2
+        });
+      }
+      return new THREE.MeshStandardMaterial({
+        color: col,
+        metalness: metal,
+        roughness: rough
+      });
+    };
 
     if (type === 'chair') {
       // 의자
       const seat = new THREE.Mesh(
         new THREE.BoxGeometry(0.9, 0.1, 0.9),
-        new THREE.MeshStandardMaterial({ color: 0xb45309 })
+        getMat(0xb45309)
       );
       seat.position.y = 0.6;
       fGroup.add(seat);
 
       const back = new THREE.Mesh(
         new THREE.BoxGeometry(0.9, 0.9, 0.1),
-        new THREE.MeshStandardMaterial({ color: 0x92400e })
+        getMat(0x92400e)
       );
       back.position.set(0, 1.1, -0.4);
       fGroup.add(back);
@@ -1357,7 +1367,7 @@ window.Game3D = (function() {
         for (let dz of [-0.35, 0.35]) {
           const leg = new THREE.Mesh(
             new THREE.CylinderGeometry(0.04, 0.04, 0.6),
-            new THREE.MeshStandardMaterial({ color: 0x78350f })
+            getMat(0x78350f)
           );
           leg.position.set(dx, 0.3, dz);
           fGroup.add(leg);
@@ -1367,7 +1377,7 @@ window.Game3D = (function() {
       // 책상
       const top = new THREE.Mesh(
         new THREE.BoxGeometry(1.8, 0.12, 1.1),
-        new THREE.MeshStandardMaterial({ color: 0xa16207 })
+        getMat(0xa16207)
       );
       top.position.y = 0.9;
       fGroup.add(top);
@@ -1376,7 +1386,7 @@ window.Game3D = (function() {
         for (let dz of [-0.42, 0.42]) {
           const leg = new THREE.Mesh(
             new THREE.CylinderGeometry(0.05, 0.05, 0.9),
-            new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 })
+            getMat(0x1e293b, 0.7, 0.3)
           );
           leg.position.set(dx, 0.45, dz);
           fGroup.add(leg);
@@ -1386,7 +1396,7 @@ window.Game3D = (function() {
       // 금속 선반
       const shelf = new THREE.Mesh(
         new THREE.BoxGeometry(1.6, 2.2, 0.6),
-        new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.3 })
+        getMat(0x475569, 0.8, 0.3)
       );
       shelf.position.y = 1.1;
       fGroup.add(shelf);
@@ -1394,7 +1404,7 @@ window.Game3D = (function() {
       // 수납장
       const cab = new THREE.Mesh(
         new THREE.BoxGeometry(1.4, 1.6, 0.9),
-        new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 })
+        getMat(0xd97706, 0.1, 0.5)
       );
       cab.position.y = 0.8;
       fGroup.add(cab);
@@ -1402,11 +1412,212 @@ window.Game3D = (function() {
       // 연금술 실험대
       const lab = new THREE.Mesh(
         new THREE.BoxGeometry(2.0, 1.2, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6 })
+        getMat(0x0284c7, 0.6, 0.3)
       );
       lab.position.y = 0.6;
       fGroup.add(lab);
     }
+
+    if (isGhost) {
+      // 가구 바닥 원형 네온 배치 링
+      const ringGeo = new THREE.RingGeometry(0.7, 0.88, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.02;
+      fGroup.add(ring);
+    }
+
+    return fGroup;
+  }
+
+  // 가구 배치 모드 시작 (방 꾸미기)
+  function startFurniturePlacement(furnData) {
+    if (!roomGroup) return;
+
+    cancelFurniturePlacement(false);
+
+    placementMode = true;
+    placementFurnData = furnData;
+    placementRotation = 0;
+
+    // 플레이어의 앞쪽 약 2.5m 지점을 초기 배치 위치로 설정
+    let startX = 0;
+    let startZ = 0;
+    if (playerMesh) {
+      const fX = -Math.sin(playerMesh.rotation.y);
+      const fZ = -Math.cos(playerMesh.rotation.y);
+      startX = playerMesh.position.x + fX * 2.5;
+      startZ = playerMesh.position.z + fZ * 2.5;
+    }
+
+    const maxBound = (currentRoomId === 'room_5') ? 15.0 : 9.5;
+    placementPos.x = Math.max(-maxBound, Math.min(maxBound, startX));
+    placementPos.z = Math.max(-maxBound, Math.min(maxBound, startZ));
+
+    // 반투명 고스트 소환
+    placementGhostGroup = createFurnitureModel(furnData.modelType || 'chair', true);
+    placementGhostGroup.position.set(placementPos.x, 0, placementPos.z);
+    placementGhostGroup.rotation.y = placementRotation;
+    roomGroup.add(placementGhostGroup);
+
+    // 상단 배치 컨트롤 HUD 활성화
+    const hud = document.getElementById('furniture-placement-hud');
+    const iconEl = document.getElementById('place-hud-icon');
+    const titleEl = document.getElementById('place-hud-title');
+    if (iconEl) iconEl.textContent = furnData.icon || '🪑';
+    if (titleEl) titleEl.textContent = `${furnData.name || '가구'} 배치 중...`;
+    if (hud) hud.classList.remove('hidden');
+
+    if (window.App && window.App.showToast) {
+      window.App.showToast(`🎨 [${furnData.name}] 배치 모드! 바닥을 클릭하거나 조작키로 원하는 위치를 지정하세요!`, 3200);
+    }
+  }
+
+  // 가구 45도 회전
+  function rotatePlacement() {
+    if (!placementMode || !placementGhostGroup) return;
+    placementRotation = (placementRotation + Math.PI / 4) % (Math.PI * 2);
+    placementGhostGroup.rotation.y = placementRotation;
+  }
+
+  // 플레이어 앞자리로 이동
+  function placeInFrontOfPlayer() {
+    if (!placementMode || !placementGhostGroup || !playerMesh) return;
+    const fX = -Math.sin(playerMesh.rotation.y);
+    const fZ = -Math.cos(playerMesh.rotation.y);
+    const maxBound = (currentRoomId === 'room_5') ? 15.0 : 9.5;
+    placementPos.x = Math.max(-maxBound, Math.min(maxBound, playerMesh.position.x + fX * 2.5));
+    placementPos.z = Math.max(-maxBound, Math.min(maxBound, playerMesh.position.z + fZ * 2.5));
+    placementGhostGroup.position.set(placementPos.x, 0, placementPos.z);
+  }
+
+  // 배치 확정
+  function confirmFurniturePlacement() {
+    if (!placementMode || !placementFurnData) return;
+
+    const furnObj = {
+      ...placementFurnData,
+      roomId: currentRoomId,
+      instanceId: placementFurnData.instanceId || ('inst_' + Date.now()),
+      x: placementPos.x,
+      z: placementPos.z,
+      rotation: placementRotation
+    };
+
+    // 기존 목록에서 동일한 instanceId가 있다면 기존 메시 제거 후 교체
+    const existIdx = placedFurnitures.findIndex(f => f.instanceId === furnObj.instanceId);
+    if (existIdx >= 0) {
+      if (placedFurnitures[existIdx].mesh && roomGroup) {
+        roomGroup.remove(placedFurnitures[existIdx].mesh);
+      }
+      placedFurnitures.splice(existIdx, 1);
+    }
+
+    placedFurnitures.push(furnObj);
+    spawnFurnitureMesh(furnObj, true);
+
+    cancelFurniturePlacement(false);
+
+    // 스토리지에 자동 저장 (방 꾸미기 유지)
+    savePlacedFurnituresToLocal();
+
+    if (window.App && window.App.showToast) {
+      window.App.showToast(`✨ [${furnObj.name}] 배치가 완료되었습니다! 방이 더욱 멋지게 꾸며졌습니다.`, 3000);
+    }
+    if (window.confetti) {
+      window.confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+    }
+  }
+
+  // 배치 취소
+  function cancelFurniturePlacement(notify = true) {
+    if (placementGhostGroup && roomGroup) {
+      roomGroup.remove(placementGhostGroup);
+      placementGhostGroup = null;
+    }
+    placementMode = false;
+    placementFurnData = null;
+
+    const hud = document.getElementById('furniture-placement-hud');
+    if (hud) hud.classList.add('hidden');
+
+    if (notify && window.App && window.App.showToast) {
+      window.App.showToast('가구 배치가 취소되었습니다.', 2000);
+    }
+  }
+
+  // 로컬 스토리지 방 꾸미기 저장 & 복원
+  function savePlacedFurnituresToLocal() {
+    try {
+      const dataToSave = placedFurnitures.map(f => ({
+        id: f.id,
+        name: f.name,
+        icon: f.icon,
+        modelType: f.modelType,
+        score: f.score,
+        roomId: f.roomId,
+        instanceId: f.instanceId,
+        x: f.x,
+        z: f.z,
+        rotation: f.rotation
+      }));
+      localStorage.setItem('escape_placed_furnitures', JSON.stringify(dataToSave));
+    } catch (e) {}
+  }
+
+  function loadPlacedFurnituresFromLocal() {
+    try {
+      const saved = localStorage.getItem('escape_placed_furnitures');
+      if (saved) {
+        placedFurnitures = JSON.parse(saved);
+      }
+    } catch (e) {}
+  }
+
+  // 가구 즉시 스폰 (기본 배치)
+  function spawnFurniture(furnitureData) {
+    const furnObj = {
+      ...furnitureData,
+      roomId: currentRoomId,
+      instanceId: 'inst_' + Date.now()
+    };
+    placedFurnitures.push(furnObj);
+    spawnFurnitureMesh(furnObj, true);
+    savePlacedFurnituresToLocal();
+  }
+
+  // 3D 가구 메시 생성 및 방에 부착
+  function spawnFurnitureMesh(furnObj, playFx) {
+    if (!roomGroup) return;
+
+    let posX = (typeof furnObj.x === 'number') ? furnObj.x : 0;
+    let posZ = (typeof furnObj.z === 'number') ? furnObj.z : 0;
+    let rotY = (typeof furnObj.rotation === 'number') ? furnObj.rotation : 0;
+
+    // x 좌표가 없는 레거시 데이터는 슬롯 자동 배치
+    if (typeof furnObj.x !== 'number') {
+      const slotIdx = placedFurnitures.filter(f => f.roomId === currentRoomId).indexOf(furnObj);
+      const slots = [
+        { x: -3, z: 1 },
+        { x: 3, z: 1 },
+        { x: -6, z: 4 },
+        { x: 6, z: 4 },
+        { x: 0, z: 2 }
+      ];
+      const pos = slots[slotIdx % slots.length] || { x: 0, z: 0 };
+      posX = pos.x;
+      posZ = pos.z;
+      furnObj.x = posX;
+      furnObj.z = posZ;
+    }
+
+    const fGroup = createFurnitureModel(furnObj.modelType || 'chair', false);
+    fGroup.position.set(posX, 0, posZ);
+    fGroup.rotation.y = rotY;
+
+    // 가구 객체에 3D 메시 참조 보관
+    furnObj.mesh = fGroup;
 
     // 소환 애니메이션 연출 (스케일 업 & 파티클)
     if (playFx) {
@@ -1433,7 +1644,7 @@ window.Game3D = (function() {
     }
 
     roomGroup.add(fGroup);
-    addBoxCollider(pos.x, pos.z, 1.2, 1.2);
+    addBoxCollider(posX, posZ, 1.2, 1.2);
   }
 
   // -------------------------------------------------------------
@@ -2133,6 +2344,25 @@ window.Game3D = (function() {
   // -------------------------------------------------------------
   function setupInputListeners() {
     window.addEventListener('keydown', e => {
+      // 1. 가구 배치 모드 중일 때의 전용 키 조작
+      if (placementMode) {
+        if (e.code === 'KeyR') {
+          e.preventDefault();
+          rotatePlacement();
+          return;
+        }
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          confirmFurniturePlacement();
+          return;
+        }
+        if (e.code === 'Escape') {
+          e.preventDefault();
+          cancelFurniturePlacement(true);
+          return;
+        }
+      }
+
       keysDown[e.code] = true;
 
       // Space키: 점프 (공원 벤치 뛰어넘기 & 점프 놀이)
@@ -2152,7 +2382,7 @@ window.Game3D = (function() {
         if (btn) btn.click();
       }
       // R키: 랭킹 모달
-      if (e.code === 'KeyR') {
+      if (e.code === 'KeyR' && !placementMode) {
         const btn = document.getElementById('btn-open-rank');
         if (btn) btn.click();
       }
@@ -2161,6 +2391,54 @@ window.Game3D = (function() {
     window.addEventListener('keyup', e => {
       keysDown[e.code] = false;
     });
+
+    // 캔버스 마우스/터치 바닥 포인터 추적 및 클릭 배치
+    const canvasContainer = document.getElementById('game-canvas-container');
+    if (canvasContainer) {
+      const handlePlacementPointer = (e) => {
+        if (!placementMode || !placementGhostGroup || !camera) return;
+        const rect = canvasContainer.getBoundingClientRect();
+        const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+        const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+        if (clientX === undefined || clientY === undefined) return;
+
+        placementMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        placementMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+        placementRaycaster.setFromCamera(placementMouse, camera);
+        const hit = new THREE.Vector3();
+        if (placementRaycaster.ray.intersectPlane(groundPlane, hit)) {
+          const maxBound = (currentRoomId === 'room_5') ? 15.0 : 9.5;
+          placementPos.x = Math.max(-maxBound, Math.min(maxBound, hit.x));
+          placementPos.z = Math.max(-maxBound, Math.min(maxBound, hit.z));
+          placementGhostGroup.position.set(placementPos.x, 0, placementPos.z);
+        }
+      };
+
+      canvasContainer.addEventListener('mousemove', handlePlacementPointer);
+      canvasContainer.addEventListener('touchmove', handlePlacementPointer, { passive: true });
+
+      canvasContainer.addEventListener('click', (e) => {
+        if (placementMode && placementGhostGroup) {
+          if (renderer && e.target === renderer.domElement) {
+            confirmFurniturePlacement();
+          }
+        }
+      });
+    }
+
+    // 가구 배치 HUD 버튼 이벤트 바인딩
+    const btnPlaceRotate = document.getElementById('btn-place-rotate');
+    if (btnPlaceRotate) btnPlaceRotate.addEventListener('click', rotatePlacement);
+
+    const btnPlaceToFront = document.getElementById('btn-place-to-front');
+    if (btnPlaceToFront) btnPlaceToFront.addEventListener('click', placeInFrontOfPlayer);
+
+    const btnPlaceConfirm = document.getElementById('btn-place-confirm');
+    if (btnPlaceConfirm) btnPlaceConfirm.addEventListener('click', confirmFurniturePlacement);
+
+    const btnPlaceCancel = document.getElementById('btn-place-cancel');
+    if (btnPlaceCancel) btnPlaceCancel.addEventListener('click', () => cancelFurniturePlacement(true));
 
     // 모바일 가상 조이스틱 터치 이벤트
     setupVirtualJoystick();
@@ -2427,6 +2705,14 @@ window.Game3D = (function() {
     buildRoom: buildRoom,
     spawnPlayer: spawnPlayer,
     spawnFurniture: spawnFurniture,
+    startFurniturePlacement: startFurniturePlacement,
+    confirmFurniturePlacement: confirmFurniturePlacement,
+    cancelFurniturePlacement: cancelFurniturePlacement,
+    rotatePlacement: rotatePlacement,
+    placeInFrontOfPlayer: placeInFrontOfPlayer,
+    isPlacementMode: function() { return placementMode; },
+    getPlacedFurnitures: function() { return placedFurnitures; },
+    loadPlacedFurnituresFromLocal: loadPlacedFurnituresFromLocal,
     unlockExitGate: unlockExitGate,
     initPreview: initPreview,
     updatePreviewCharacter: updatePreviewCharacter,

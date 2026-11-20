@@ -1035,6 +1035,145 @@ html {
   filter: brightness(1.1);
 }
 
+/* 방 꾸미기: 실시간 3D 가구 배치 HUD */
+.furniture-placement-hud {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  background: rgba(13, 21, 38, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid #06b6d4;
+  border-radius: 50px;
+  padding: 8px 18px;
+  box-shadow: 0 10px 30px rgba(6, 182, 212, 0.35);
+  animation: fadeInDown 0.3s ease;
+}
+
+.place-hud-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.place-hud-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.place-hud-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.6));
+}
+
+.place-hud-labels {
+  display: flex;
+  flex-direction: column;
+}
+
+.place-hud-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #67e8f9;
+}
+
+.place-hud-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.place-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-place-ctrl {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-place-ctrl:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.btn-place-confirm-glow {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #34d399 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5) !important;
+}
+
+.btn-place-confirm-glow:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.75) !important;
+}
+
+.btn-place-cancel-sub {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+.btn-place-cancel-sub:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* 가구 제작/배치 보조 버튼 및 카드 뱃지 */
+.craft-btn-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-reposition-sub {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border: 1px solid #3b82f6 !important;
+  color: #93c5fd !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reposition-sub:hover {
+  background: rgba(59, 130, 246, 0.35) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.badge-crafted {
+  display: inline-block;
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
 /* 힐링 공원 가이드 모달 */
 .modal-park-guide-card {
   max-width: 580px;

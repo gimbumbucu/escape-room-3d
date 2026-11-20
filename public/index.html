@@ -251,7 +251,7 @@
       <!-- 우측 상단 유틸리티 버튼 -->
       <div class="hud-right-group">
         <button id="btn-open-crafting" class="btn-hud-action btn-craft-pulse">
-          <i class="fa-solid fa-couch"></i> <span>가구 제작하기</span>
+          <i class="fa-solid fa-couch"></i> <span>가구 제작/방 꾸미기</span>
         </button>
         <button id="btn-open-rank" class="btn-hud-action">
           <i class="fa-solid fa-trophy"></i> <span>랭킹</span>
@@ -281,6 +281,33 @@
         <button id="btn-park-super-boost" class="btn-tag-pill btn-boost-pill" title="스피드 대시">
           <i class="fa-solid fa-bolt"></i> <span>대시 가속!</span>
         </button>
+      </div>
+    </div>
+
+    <!-- 방 꾸미기: 가구 실시간 3D 배치 컨트롤 HUD -->
+    <div id="furniture-placement-hud" class="furniture-placement-hud hidden">
+      <div class="place-hud-content">
+        <div class="place-hud-info">
+          <span class="place-hud-icon" id="place-hud-icon">🪑</span>
+          <div class="place-hud-labels">
+            <div class="place-hud-title" id="place-hud-title">나무 의자 배치 중...</div>
+            <div class="place-hud-sub">바닥을 클릭하거나 아래 버튼으로 원하는 위치에 배치하세요!</div>
+          </div>
+        </div>
+        <div class="place-hud-actions">
+          <button id="btn-place-rotate" class="btn-place-ctrl" title="가구 45도 회전 (단축키: R)">
+            <i class="fa-solid fa-rotate-right"></i> <span>회전 (R)</span>
+          </button>
+          <button id="btn-place-to-front" class="btn-place-ctrl" title="내 캐릭터 바로 앞에 위치시키기">
+            <i class="fa-solid fa-street-view"></i> <span>캐릭터 앞</span>
+          </button>
+          <button id="btn-place-confirm" class="btn-place-ctrl btn-place-confirm-glow" title="이 위치에 가구 배치 확정 (Space)">
+            <i class="fa-solid fa-check"></i> <span>배치 완료 (Space)</span>
+          </button>
+          <button id="btn-place-cancel" class="btn-place-ctrl btn-place-cancel-sub" title="배치 취소 (ESC)">
+            <i class="fa-solid fa-xmark"></i> <span>취소 (ESC)</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -373,8 +400,8 @@
     <div class="modal-card modal-crafting-card">
       <div class="modal-header">
         <div class="craft-title-group">
-          <h3><i class="fa-solid fa-couch"></i> 가구 제작하기</h3>
-          <p>문제를 풀어 모은 재료로 가구를 제작하면 높은 점수를 얻고 방에 배치됩니다!</p>
+          <h3><i class="fa-solid fa-couch"></i> 가구 제작 및 방 꾸미기</h3>
+          <p>문제를 풀어 모은 재료로 가구를 제작하고, 방 원하는 위치에 자유롭게 배치하여 꾸며보세요!</p>
         </div>
         <div class="player-materials-summary">
           <span class="summary-mat"><span class="mat-icon">🪵</span> 목재 <strong id="craft-wood-count">0</strong>개</span>
@@ -398,9 +425,14 @@
               <div class="req-item">필요 목재: <span class="req-val">2개</span></div>
               <div class="req-item">필요 금속: <span class="req-val">0개</span></div>
             </div>
-            <button id="btn-execute-craft" class="btn btn-primary btn-block btn-craft-confirm">
-              <i class="fa-solid fa-hammer"></i> 제작하기
-            </button>
+            <div class="craft-btn-actions">
+              <button id="btn-execute-craft" class="btn btn-primary btn-block btn-craft-confirm">
+                <i class="fa-solid fa-hammer"></i> 가구 제작 후 방에 배치하기
+              </button>
+              <button id="btn-reposition-craft" class="btn btn-secondary btn-block btn-reposition-sub hidden">
+                <i class="fa-solid fa-arrows-up-down-left-right"></i> 방에 배치하기 / 위치 변경
+              </button>
+            </div>
           </div>
 
           <!-- 우측: 가구 카드 목록 그리드 -->

@@ -662,6 +662,9 @@ window.App = (function () {
 
     // 3D 씬 초기화 (최초 1회)
     if (!gameInitialized) {
+      if (Game3D.loadPlacedFurnituresFromLocal) {
+        Game3D.loadPlacedFurnituresFromLocal();
+      }
       Game3D.init('game-canvas-container');
       gameInitialized = true;
     }
@@ -1013,11 +1016,14 @@ window.App = (function () {
     grid.innerHTML = '';
 
     const furnitures = gameConfig.furnitures || [];
+    const craftedList = studentData.craftedFurnitures || [];
 
     furnitures.forEach(furn => {
       const card = document.createElement('div');
       card.className = `furn-card ${furn.id === selectedFurnId ? 'selected' : ''}`;
       card.dataset.id = furn.id;
+
+      const isCrafted = craftedList.includes(furn.name);
 
       card.innerHTML = `
         <div class="furn-card-top">
@@ -1025,6 +1031,7 @@ window.App = (function () {
           <div>
             <div class="furn-card-title">${escapeHtml(furn.name)}</div>
             <div class="furn-card-score">+${furn.score}점</div>
+            ${isCrafted ? '<span class="badge-crafted"><i class="fa-solid fa-sparkles"></i> 보유 중</span>' : ''}
           </div>
         </div>
         <div class="furn-card-cost">
@@ -1062,6 +1069,21 @@ window.App = (function () {
     // 제작하기 버튼 바인딩
     const btnExecute = document.getElementById('btn-execute-craft');
     btnExecute.onclick = () => executeCraftFurniture(furn);
+
+    // 이미 제작하여 보유 중인 가구일 경우 "방에 배치하기 / 위치 변경" 버튼 활성화
+    const btnReposition = document.getElementById('btn-reposition-craft');
+    const isCrafted = (studentData.craftedFurnitures || []).includes(furn.name);
+    if (btnReposition) {
+      if (isCrafted) {
+        btnReposition.classList.remove('hidden');
+        btnReposition.onclick = () => {
+          document.getElementById('modal-crafting').classList.add('hidden');
+          Game3D.startFurniturePlacement(furn);
+        };
+      } else {
+        btnReposition.classList.add('hidden');
+      }
+    }
   }
 
   async function executeCraftFurniture(furn) {
@@ -1081,8 +1103,6 @@ window.App = (function () {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
-
         // 학생 상태 갱신
         studentData.score = data.studentState.score;
         studentData.wood = data.studentState.wood;
@@ -1090,11 +1110,11 @@ window.App = (function () {
         studentData.craftedFurnitures = data.studentState.craftedFurnitures;
         updateHudInfo();
 
-        // 3D 방에 실제 가구 소환!
-        Game3D.spawnFurniture(furn);
-
         // 모달 닫기
         document.getElementById('modal-crafting').classList.add('hidden');
+
+        // 가구 실시간 3D 방 꾸미기 배치 모드 시작!
+        Game3D.startFurniturePlacement(furn);
       } else {
         alert(data.message || '가구 제작 실패');
       }
