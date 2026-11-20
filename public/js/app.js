@@ -595,8 +595,70 @@ window.App = (function () {
   // -------------------------------------------------------------
   let gameInitialized = false;
 
+  // 해금된 방 목록 (기본은 1번 방 도서관만 입장 가능)
+  let unlockedRooms = ['room_1'];
+
+  const roomConfigMap = {
+    room_1: { name: '1번 방 도서관', icon: 'fa-book' },
+    room_2: { name: '2번 방 과학실', icon: 'fa-flask' },
+    room_3: { name: '3번 방 박물관', icon: 'fa-landmark' },
+    room_4: { name: '4번 방 공방', icon: 'fa-hammer' },
+    room_5: { name: '5번 힐링공원 🌳', icon: 'fa-tree' }
+  };
+
+  function updateRoomTabsLockState() {
+    const tabs = document.querySelectorAll('.room-tab');
+    tabs.forEach(tab => {
+      const rId = tab.dataset.room;
+      const isUnlocked = unlockedRooms.includes(rId);
+      const conf = roomConfigMap[rId] || { name: rId, icon: 'fa-door-open' };
+
+      if (isUnlocked) {
+        tab.classList.remove('locked');
+        tab.removeAttribute('title');
+        tab.innerHTML = `<i class="fa-solid ${conf.icon}"></i> ${conf.name}`;
+      } else {
+        tab.classList.add('locked');
+        tab.setAttribute('title', '🔒 미션 미해결로 잠김 (현재 방의 퀴즈를 해결해야 이동 가능)');
+        tab.innerHTML = `<i class="fa-solid fa-lock"></i> ${conf.name}`;
+      }
+    });
+  }
+
+  function unlockRoom(roomId) {
+    if (!unlockedRooms.includes(roomId)) {
+      unlockedRooms.push(roomId);
+    }
+    updateRoomTabsLockState();
+  }
+
+  function syncUnlockedRoomsFromProgress() {
+    if (!studentData) return;
+    unlockedRooms = ['room_1'];
+    if (studentData.escaped) {
+      unlockedRooms = ['room_1', 'room_2', 'room_3', 'room_4', 'room_5'];
+      updateRoomTabsLockState();
+      return;
+    }
+    if (Array.isArray(studentData.solvedQuestions) && studentData.solvedQuestions.length > 0 && Array.isArray(gameConfig.questions)) {
+      const solvedIds = new Set(studentData.solvedQuestions);
+      gameConfig.questions.forEach(q => {
+        if (solvedIds.has(q.id)) {
+          if (q.roomId === 'room_1' && !unlockedRooms.includes('room_2')) unlockedRooms.push('room_2');
+          if (q.roomId === 'room_2' && !unlockedRooms.includes('room_3')) unlockedRooms.push('room_3');
+          if (q.roomId === 'room_3' && !unlockedRooms.includes('room_4')) unlockedRooms.push('room_4');
+          if (q.roomId === 'room_4' && !unlockedRooms.includes('room_5')) unlockedRooms.push('room_5');
+        }
+      });
+    }
+    updateRoomTabsLockState();
+  }
+
   function startGame() {
     showScreen('screen-game');
+
+    // 해금 상태 동기화
+    syncUnlockedRoomsFromProgress();
 
     // 3D 씬 초기화 (최초 1회)
     if (!gameInitialized) {
@@ -609,12 +671,17 @@ window.App = (function () {
 
     // 상단 HUD 갱신
     updateHudInfo();
+    updateRoomTabsLockState();
 
     // 방 이동 탭 버튼 이벤트 바인딩
     const roomTabs = document.querySelectorAll('.room-tab');
     roomTabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const targetRoom = tab.dataset.room;
+        if (!unlockedRooms.includes(targetRoom)) {
+          showToast('🔒 아직 잠겨있는 방입니다! 현재 방의 미션을 먼저 해결/탈출해야 이동할 수 있습니다.', 3000);
+          return;
+        }
         switchRoom(targetRoom);
       });
     });
@@ -659,6 +726,10 @@ window.App = (function () {
 
   // 방 전환 공통 함수
   function switchRoom(targetRoomId) {
+    if (!unlockedRooms.includes(targetRoomId)) {
+      showToast('🔒 아직 잠겨있는 방입니다! 현재 방의 미션을 먼저 탈출/해결해야 입장할 수 있습니다.', 3000);
+      return;
+    }
     const roomTabs = document.querySelectorAll('.room-tab');
     roomTabs.forEach(t => {
       if (t.dataset.room === targetRoomId) {
@@ -888,7 +959,8 @@ window.App = (function () {
         }
 
         if (nextRoom) {
-          feedbackEl.innerHTML = `${data.message}<br><strong style="color: #67e8f9; font-size: 15px; margin-top: 8px; display: inline-block;">🚀 정답! 잠시 후 ${nextRoomName}로 이동합니다!</strong>`;
+          unlockRoom(nextRoom);
+          feedbackEl.innerHTML = `${data.message}<br><strong style="color: #67e8f9; font-size: 15px; margin-top: 8px; display: inline-block;">🚀 정답! 다음 방(${nextRoomName})의 잠금이 해제되었습니다! 잠시 후 이동합니다!</strong>`;
         }
 
         // 1.5초 후 모달 닫고 다음 방으로 자동 이동!
@@ -902,7 +974,7 @@ window.App = (function () {
                 window.confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
               }
             } else {
-              showToast(`🚪 ${nextRoomName}에 입장했습니다!`, 2500);
+              showToast(`🔓 ${nextRoomName} 해금 & 입장 완료!`, 2500);
             }
           }
         }, 1600);
@@ -1047,6 +1119,10 @@ window.App = (function () {
         studentData.escaped = true;
         studentData.score = data.finalScore;
         updateHudInfo();
+
+        // 방 탈출 성공 시 모든 방 자유 탐험 가능하도록 전체 해금
+        unlockedRooms = ['room_1', 'room_2', 'room_3', 'room_4', 'room_5'];
+        updateRoomTabsLockState();
 
         // 축하 폭죽 연출 (화려한 연속 폭죽)
         fireFireworks();
