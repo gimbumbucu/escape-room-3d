@@ -632,6 +632,39 @@ window.App = (function () {
     updateRoomTabsLockState();
   }
 
+  function getRoomMissionStatus(roomId) {
+    const targetRoom = roomId || (Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1');
+    if (targetRoom === 'room_5') {
+      return { isComplete: true, isPark: true, totalQ: 0, solvedQ: 0, isAllQuestionsSolved: true, placedCount: 0, isDecorated: true };
+    }
+
+    const roomQuestions = (gameConfig.questions || []).filter(q => q.roomId === targetRoom);
+    const totalQ = roomQuestions.length;
+    const solvedSet = new Set(studentData.solvedQuestions || []);
+    const solvedQ = roomQuestions.filter(q => solvedSet.has(q.id)).length;
+    const isAllQuestionsSolved = totalQ > 0 ? (solvedQ >= totalQ) : false;
+
+    const placedList = (Game3D.getPlacedFurnitures ? Game3D.getPlacedFurnitures() : []).filter(f => f.roomId === targetRoom);
+    const placedCount = placedList.length;
+    const isDecorated = placedCount >= 1;
+
+    const isComplete = isAllQuestionsSolved && isDecorated;
+
+    return {
+      roomId: targetRoom,
+      totalQ,
+      solvedQ,
+      isAllQuestionsSolved,
+      placedCount,
+      isDecorated,
+      isComplete
+    };
+  }
+
+  function isRoomCompleted(roomId) {
+    return getRoomMissionStatus(roomId).isComplete;
+  }
+
   function syncUnlockedRoomsFromProgress() {
     if (!studentData) return;
     unlockedRooms = ['room_1'];
@@ -640,17 +673,28 @@ window.App = (function () {
       updateRoomTabsLockState();
       return;
     }
-    if (Array.isArray(studentData.solvedQuestions) && studentData.solvedQuestions.length > 0 && Array.isArray(gameConfig.questions)) {
-      const solvedIds = new Set(studentData.solvedQuestions);
-      gameConfig.questions.forEach(q => {
-        if (solvedIds.has(q.id)) {
-          if (q.roomId === 'room_1' && !unlockedRooms.includes('room_2')) unlockedRooms.push('room_2');
-          if (q.roomId === 'room_2' && !unlockedRooms.includes('room_3')) unlockedRooms.push('room_3');
-          if (q.roomId === 'room_3' && !unlockedRooms.includes('room_4')) unlockedRooms.push('room_4');
-          if (q.roomId === 'room_4' && !unlockedRooms.includes('room_5')) unlockedRooms.push('room_5');
+
+    const placedList = (Game3D.getPlacedFurnitures ? Game3D.getPlacedFurnitures() : []);
+    const solvedSet = new Set(studentData.solvedQuestions || []);
+    const rooms = ['room_1', 'room_2', 'room_3', 'room_4'];
+    const nextMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+
+    for (let i = 0; i < rooms.length; i++) {
+      const rId = rooms[i];
+      const roomQs = (gameConfig.questions || []).filter(q => q.roomId === rId);
+      const isAllQ = roomQs.length > 0 && roomQs.every(q => solvedSet.has(q.id));
+      const isDeco = placedList.some(f => f.roomId === rId) || (studentData.craftedFurnitures && studentData.craftedFurnitures.length >= (i + 1));
+
+      if (isAllQ && isDeco) {
+        const nextR = nextMap[rId];
+        if (nextR && !unlockedRooms.includes(nextR)) {
+          unlockedRooms.push(nextR);
         }
-      });
+      } else {
+        break;
+      }
     }
+
     updateRoomTabsLockState();
   }
 
@@ -721,9 +765,9 @@ window.App = (function () {
       Game3D.triggerNearbyInspect();
     });
 
-    // 탈출 시도 버튼
+    // 탈출 시도 버튼 (현재 방 미션 완료 시 다음 방으로 이동 or 최종 탈출)
     document.getElementById('btn-try-escape').addEventListener('click', () => {
-      handleFinalEscape();
+      handleExitGateInteraction();
     });
   }
 
@@ -742,6 +786,37 @@ window.App = (function () {
       }
     });
     Game3D.buildRoom(targetRoomId);
+    updateGoalRequirementDisplay();
+  }
+
+  // 출구 게이트 상호작용 처리 (3D 문 앞 E키 또는 상단 탈출 버튼 클릭 시)
+  function handleExitGateInteraction() {
+    const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
+    const status = getRoomMissionStatus(currentRoom);
+
+    if (!status.isComplete) {
+      let missing = [];
+      if (!status.isAllQuestionsSolved) {
+        missing.push(`문제 ${status.totalQ - status.solvedQ}개 남음`);
+      }
+      if (!status.isDecorated) {
+        missing.push('가구를 제작하여 방에 배치');
+      }
+      showToast(`🔒 탈출문이 굳게 잠겨 있습니다! (${missing.join(', ')}해야 문이 열립니다)`, 3500);
+      return;
+    }
+
+    if (currentRoom === 'room_4') {
+      handleFinalEscape();
+    } else {
+      const nextRoomMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4' };
+      const nextR = nextRoomMap[currentRoom];
+      if (nextR) {
+        unlockRoom(nextR);
+        switchRoom(nextR);
+        showToast(`🚪 ${roomConfigMap[nextR].name}에 입장했습니다!`, 2500);
+      }
+    }
   }
 
   // 플로팅 토스트 안내 배너
@@ -782,25 +857,62 @@ window.App = (function () {
     if (metalCount) metalCount.textContent = studentData.metal;
     if (avatarIcon) avatarIcon.textContent = avatarEmoji;
 
-    // 제작 목표 프로그레스 갱신
+    // 제작 및 탈출 목표 프로그레스 갱신
     updateGoalRequirementDisplay();
   }
 
   function updateGoalRequirementDisplay() {
-    const craftedCount = (studentData.craftedFurnitures || []).length;
-    const requiredCount = gameConfig.settings.escapeRequiredFurnitures || 2;
+    const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
+    const status = getRoomMissionStatus(currentRoom);
 
-    const goalCraftedEl = document.getElementById('goal-crafted-count');
-    const goalReqEl = document.getElementById('goal-required-count');
+    const goalBar = document.getElementById('escape-goal-bar');
+    const goalTextEl = document.querySelector('.goal-text');
     const btnEscape = document.getElementById('btn-try-escape');
+    if (!goalBar || !goalTextEl) return;
 
-    if (goalCraftedEl) goalCraftedEl.textContent = craftedCount;
-    if (goalReqEl) goalReqEl.textContent = requiredCount;
+    if (currentRoom === 'room_5') {
+      goalTextEl.innerHTML = `
+        <i class="fa-solid fa-tree" style="color: #4ade80;"></i>
+        <strong>5번 힐링공원 🌳</strong> 자유롭게 술래잡기를 즐기고 야외 가구로 공원을 꾸며보세요!
+      `;
+      if (btnEscape) btnEscape.classList.add('hidden');
+      return;
+    }
 
-    if (craftedCount >= requiredCount) {
-      if (btnEscape) btnEscape.classList.remove('hidden');
-      Game3D.unlockExitGate();
+    const conf = roomConfigMap[currentRoom] || { name: '현재 방' };
+    const qBadge = status.isAllQuestionsSolved 
+      ? `<span style="color:#4ade80; font-weight:800;">✓ 문제 완료 (${status.solvedQ}/${status.totalQ})</span>` 
+      : `<span style="color:#fde047; font-weight:800;">📝 문제 (${status.solvedQ}/${status.totalQ})</span>`;
+    
+    const fBadge = status.isDecorated 
+      ? `<span style="color:#4ade80; font-weight:800;">✓ 방 꾸미기 완료 (${status.placedCount}개 배치)</span>` 
+      : `<span style="color:#fb923c; font-weight:800;">🪑 가구 배치 필요 (${status.placedCount}/1개)</span>`;
+
+    const nextRoomMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+    const nextR = nextRoomMap[currentRoom];
+
+    if (status.isComplete) {
+      goalTextEl.innerHTML = `
+        <i class="fa-solid fa-door-open" style="color: #4ade80;"></i>
+        <strong>[${conf.name} 완료!]</strong> ${qBadge} | ${fBadge} ➔ <strong style="color: #67e8f9;">문이 열렸습니다!</strong>
+      `;
+      if (Game3D.unlockExitGate) Game3D.unlockExitGate();
+      if (nextR) unlockRoom(nextR);
+
+      if (btnEscape) {
+        btnEscape.classList.remove('hidden');
+        if (currentRoom === 'room_4') {
+          btnEscape.innerHTML = `<i class="fa-solid fa-flag-checkered"></i> <span>최종 탈출구 열기! (성공)</span>`;
+        } else {
+          const nextName = roomConfigMap[nextR] ? roomConfigMap[nextR].name : '다음 방';
+          btnEscape.innerHTML = `<i class="fa-solid fa-door-open"></i> <span>${nextName}으로 이동하기</span>`;
+        }
+      }
     } else {
+      goalTextEl.innerHTML = `
+        <i class="fa-solid fa-lock" style="color: #f87171;"></i>
+        <strong>[${conf.name} 미션]</strong> ${qBadge} | ${fBadge}
+      `;
       if (btnEscape) btnEscape.classList.add('hidden');
     }
   }
@@ -837,6 +949,12 @@ window.App = (function () {
   // -------------------------------------------------------------
   function onInspectObject(nearbyObject) {
     if (!nearbyObject) return;
+
+    // 3D 탈출문 (Exit Gate) 조사 시 탈출/다음 방 처리
+    if (nearbyObject.isExitGate || nearbyObject.type === 'exit_gate') {
+      handleExitGateInteraction();
+      return;
+    }
 
     // 5번 방 힐링 공원 안내판 조사 시
     if (nearbyObject.type === 'park_sign' || nearbyObject.defaultQId === 99) {
@@ -942,45 +1060,31 @@ window.App = (function () {
         // 보기 비활성화
         document.querySelectorAll('.btn-q-option').forEach(b => b.disabled = true);
 
-        // 다음 방 자동 순차 이동 계산 (1번 방 -> 2번 방 -> 3번 방 -> 4번 방 -> 5번 방 힐링 공원)
         const currentRoom = Game3D.getCurrentRoomId();
-        let nextRoom = null;
-        let nextRoomName = '';
+        const conf = roomConfigMap[currentRoom] || { name: '현재 방' };
+        feedbackEl.innerHTML = `${data.message}<br><strong style="color: #67e8f9; font-size: 14px; margin-top: 8px; display: inline-block;">✨ 정답입니다! 🪵 목재 ${data.rewardWood || 1}개, ⚙️ 금속 ${data.rewardMetal || 1}개를 획득했습니다!</strong>`;
 
-        if (currentRoom === 'room_1') {
-          nextRoom = 'room_2';
-          nextRoomName = '2번 방 과학실';
-        } else if (currentRoom === 'room_2') {
-          nextRoom = 'room_3';
-          nextRoomName = '3번 방 박물관';
-        } else if (currentRoom === 'room_3') {
-          nextRoom = 'room_4';
-          nextRoomName = '4번 방 공방';
-        } else if (currentRoom === 'room_4') {
-          nextRoom = 'room_5';
-          nextRoomName = '5번 방 힐링 공원 & 술래잡기 쉼터 🌳';
-        }
-
-        if (nextRoom) {
-          unlockRoom(nextRoom);
-          feedbackEl.innerHTML = `${data.message}<br><strong style="color: #67e8f9; font-size: 15px; margin-top: 8px; display: inline-block;">🚀 정답! 다음 방(${nextRoomName})의 잠금이 해제되었습니다! 잠시 후 이동합니다!</strong>`;
-        }
-
-        // 1.5초 후 모달 닫고 다음 방으로 자동 이동!
+        // 1.5초 후 문제 모달 닫기 (자동 방 이동을 하지 않고, 현재 방에서 가구 제작/배치 및 남은 문제 풀이 진행)
         setTimeout(() => {
           document.getElementById('modal-question').classList.add('hidden');
-          if (nextRoom) {
-            switchRoom(nextRoom);
-            if (nextRoom === 'room_5') {
-              showToast('🎉 모든 문제를 풀었습니다! 힐링 공원에서 술래잡기와 놀이기구를 즐겨보세요! 🌳', 4500);
-              if (window.confetti) {
-                window.confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
-              }
-            } else {
-              showToast(`🔓 ${nextRoomName} 해금 & 입장 완료!`, 2500);
+
+          const status = getRoomMissionStatus(currentRoom);
+          const nextRoomMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+          const nextR = nextRoomMap[currentRoom];
+
+          if (status.isComplete) {
+            if (nextR) unlockRoom(nextR);
+            if (Game3D.unlockExitGate) Game3D.unlockExitGate();
+            showToast(`🎉 [${conf.name}] 모든 문제 해결 & 가구 꾸미기 완료! 🚪 탈출문이 열렸습니다!`, 4000);
+            if (window.confetti) {
+              window.confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 } });
             }
+          } else if (status.isAllQuestionsSolved) {
+            showToast(`🎉 이 방의 모든 문제를 풀었습니다! 이제 [가구 제작/방 꾸미기]로 가구를 배치해 탈출문을 여세요! 🪑`, 4000);
+          } else {
+            showToast(`✨ 정답! (남은 문제: ${status.totalQ - status.solvedQ}개) 🪵 목재:${studentData.wood}개 ⚙️ 금속:${studentData.metal}개`, 2500);
           }
-        }, 1600);
+        }, 1500);
       } else {
         // 오답 피드백
         feedbackEl.className = 'q-feedback incorrect';
@@ -1121,6 +1225,29 @@ window.App = (function () {
     } catch (err) {
       console.error(err);
       alert('가구 제작 요청 중 오류가 발생했습니다.');
+    }
+  }
+
+  // 가구 배치 완료 시 호출 콜백 (미션 달성 체크)
+  function onFurniturePlaced(furnObj) {
+    updateHudInfo();
+    updateGoalRequirementDisplay();
+
+    const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
+    const status = getRoomMissionStatus(currentRoom);
+    const conf = roomConfigMap[currentRoom] || { name: '현재 방' };
+    const nextRoomMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+    const nextR = nextRoomMap[currentRoom];
+
+    if (status.isComplete) {
+      if (nextR) unlockRoom(nextR);
+      if (Game3D.unlockExitGate) Game3D.unlockExitGate();
+      showToast(`🎉 [${conf.name}] 가구 배치 완료! 🚪 탈출문이 열렸습니다!`, 4000);
+      if (window.confetti) {
+        window.confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 } });
+      }
+    } else if (!status.isAllQuestionsSolved) {
+      showToast(`🪑 가구 배치 완료! 남은 문제(${status.totalQ - status.solvedQ}개)를 풀면 탈출문이 열립니다!`, 3500);
     }
   }
 
@@ -1313,6 +1440,10 @@ window.App = (function () {
   return {
     init: init,
     onInspectObject: onInspectObject,
+    onFurniturePlaced: onFurniturePlaced,
+    isRoomCompleted: isRoomCompleted,
+    getRoomMissionStatus: getRoomMissionStatus,
+    updateGoalRequirementDisplay: updateGoalRequirementDisplay,
     refreshGameConfig: fetchGameConfig,
     showToast: showToast,
     switchRoom: switchRoom

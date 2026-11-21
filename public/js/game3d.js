@@ -340,6 +340,9 @@ window.Game3D = (function() {
 
       // 비상 탈출 게이트 (Exit Door)
       createExitGate();
+      if (window.App && window.App.isRoomCompleted && window.App.isRoomCompleted(roomId)) {
+        unlockExitGate();
+      }
 
       // 테마별 고유 오브젝트 및 문제 조사 스팟 배치
       buildThemeSpecificObjects(roomId);
@@ -1522,6 +1525,10 @@ window.Game3D = (function() {
     // 스토리지에 자동 저장 (방 꾸미기 유지)
     savePlacedFurnituresToLocal();
 
+    if (window.App && window.App.onFurniturePlaced) {
+      window.App.onFurniturePlaced(furnObj);
+    }
+
     if (window.App && window.App.showToast) {
       window.App.showToast(`✨ [${furnObj.name}] 배치가 완료되었습니다! 방이 더욱 멋지게 꾸며졌습니다.`, 3000);
     }
@@ -2689,6 +2696,21 @@ window.Game3D = (function() {
         }
       }
     });
+
+    // 3D 출구 게이트 (Exit Door) 접근 감지
+    if (exitGateMesh && currentRoomId !== 'room_5' && playerMesh) {
+      const gatePos = new THREE.Vector3(0, 0, -11.0);
+      const dist = playerMesh.position.distanceTo(gatePos);
+      if (dist < 3.2 && dist < minDist) {
+        minDist = dist;
+        closest = {
+          isExitGate: true,
+          title: '🚪 다음 방 탈출문 (모든 문제 해결 + 가구 꾸미기 완료 시 입장)',
+          type: 'exit_gate',
+          pos: gatePos
+        };
+      }
+    }
 
     nearbyObject = closest;
 
