@@ -125,9 +125,13 @@ window.Game3D = (function() {
   // -------------------------------------------------------------
   // [1] Three.js 초기화 및 씬 설정
   // -------------------------------------------------------------
-  function init(containerId) {
+  function init(containerId, initialRoomId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    if (initialRoomId) {
+      currentRoomId = initialRoomId;
+    }
 
     // 씬 생성
     scene = new THREE.Scene();

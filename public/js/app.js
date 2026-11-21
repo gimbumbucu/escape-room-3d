@@ -595,7 +595,12 @@ window.App = (function () {
   // -------------------------------------------------------------
   let gameInitialized = false;
 
-  // 해금된 방 목록 (기본은 1번 방 도서관만 입장 가능)
+  const ROOM_ORDER = ['room_1', 'room_2', 'room_3', 'room_4', 'room_5'];
+
+  // 이미 탈출 완료하여 폐쇄된 이전 방 목록 (이전 방으로는 되돌아갈 수 없음)
+  let escapedRooms = [];
+
+  // 해금된 방 목록 (현재 입장 가능한 활성 방 및 탈출문이 열린 방)
   let unlockedRooms = ['room_1'];
 
   const roomConfigMap = {
@@ -606,27 +611,72 @@ window.App = (function () {
     room_5: { name: '5번 힐링공원 🌳', icon: 'fa-tree' }
   };
 
+  const ESCAPE_STORAGE_PREFIX = 'escape_cleared_rooms_';
+
+  function getStorageKey() {
+    const sId = (studentData && studentData.id) ? studentData.id : 'default';
+    return `${ESCAPE_STORAGE_PREFIX}${sId}`;
+  }
+
+  function loadEscapedRooms() {
+    try {
+      const raw = localStorage.getItem(getStorageKey());
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          escapedRooms = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load escapedRooms:', e);
+    }
+  }
+
+  function saveEscapedRooms() {
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(escapedRooms));
+    } catch (e) {
+      console.warn('Failed to save escapedRooms:', e);
+    }
+  }
+
   function updateRoomTabsLockState() {
+    const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
     const tabs = document.querySelectorAll('.room-tab');
     tabs.forEach(tab => {
       const rId = tab.dataset.room;
-      const isUnlocked = unlockedRooms.includes(rId);
       const conf = roomConfigMap[rId] || { name: rId, icon: 'fa-door-open' };
+      const isEscaped = escapedRooms.includes(rId);
+      const isCurrent = (rId === currentRoom);
+      const isUnlocked = unlockedRooms.includes(rId);
 
-      if (isUnlocked) {
-        tab.classList.remove('locked');
+      tab.classList.remove('escaped', 'locked', 'active');
+
+      if (isEscaped) {
+        // 이미 탈출 완료한 이전 방 (영구 폐쇄 및 되돌아가기 불가)
+        tab.classList.add('escaped', 'locked');
+        tab.setAttribute('title', '🔒 탈출 완료 (이전 방으로는 되돌아갈 수 없습니다)');
+        tab.innerHTML = `<i class="fa-solid fa-lock"></i> <span style="text-decoration: line-through; opacity: 0.7;">${conf.name}</span> <span class="tab-badge-escaped">탈출완료</span>`;
+      } else if (isCurrent) {
+        // 현재 위치한 방
+        tab.classList.add('active');
+        tab.removeAttribute('title');
+        tab.innerHTML = `<i class="fa-solid ${conf.icon}"></i> ${conf.name}`;
+      } else if (isUnlocked) {
+        // 미션 완료 후 탈출문이 열려 진입 가능한 다음 방
         tab.removeAttribute('title');
         tab.innerHTML = `<i class="fa-solid ${conf.icon}"></i> ${conf.name}`;
       } else {
+        // 아직 도달하지 못한 미래의 잠긴 방
         tab.classList.add('locked');
-        tab.setAttribute('title', '🔒 미션 미해결로 잠김 (현재 방의 퀴즈를 해결해야 이동 가능)');
+        tab.setAttribute('title', '🔒 미션 미해결로 잠김 (현재 방의 미션을 완료하고 탈출해야 입장 가능)');
         tab.innerHTML = `<i class="fa-solid fa-lock"></i> ${conf.name}`;
       }
     });
   }
 
   function unlockRoom(roomId) {
-    if (!unlockedRooms.includes(roomId)) {
+    if (!escapedRooms.includes(roomId) && !unlockedRooms.includes(roomId)) {
       unlockedRooms.push(roomId);
     }
     updateRoomTabsLockState();
@@ -667,31 +717,45 @@ window.App = (function () {
 
   function syncUnlockedRoomsFromProgress() {
     if (!studentData) return;
-    unlockedRooms = ['room_1'];
+
+    loadEscapedRooms();
+
+    const nextMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+    const solvedSet = new Set(studentData.solvedQuestions || []);
+    const placedList = (Game3D.getPlacedFurnitures ? Game3D.getPlacedFurnitures() : []);
+
     if (studentData.escaped) {
-      unlockedRooms = ['room_1', 'room_2', 'room_3', 'room_4', 'room_5'];
+      escapedRooms = ['room_1', 'room_2', 'room_3', 'room_4'];
+      unlockedRooms = ['room_5'];
+      saveEscapedRooms();
       updateRoomTabsLockState();
       return;
     }
 
-    const placedList = (Game3D.getPlacedFurnitures ? Game3D.getPlacedFurnitures() : []);
-    const solvedSet = new Set(studentData.solvedQuestions || []);
-    const rooms = ['room_1', 'room_2', 'room_3', 'room_4'];
-    const nextMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4', room_4: 'room_5' };
+    // 탈출하지 않은 첫 번째 방을 활성 방으로 지정
+    let activeR = 'room_1';
+    for (let i = 0; i < ROOM_ORDER.length; i++) {
+      const rId = ROOM_ORDER[i];
+      if (!escapedRooms.includes(rId)) {
+        activeR = rId;
+        break;
+      }
+    }
 
-    for (let i = 0; i < rooms.length; i++) {
-      const rId = rooms[i];
-      const roomQs = (gameConfig.questions || []).filter(q => q.roomId === rId);
+    unlockedRooms = [activeR];
+
+    // 활성 방의 미션이 이미 완료된 경우 다음 방까지 해금
+    if (activeR !== 'room_5') {
+      const roomQs = (gameConfig.questions || []).filter(q => q.roomId === activeR);
       const isAllQ = roomQs.length > 0 && roomQs.every(q => solvedSet.has(q.id));
-      const isDeco = placedList.some(f => f.roomId === rId) || (studentData.craftedFurnitures && studentData.craftedFurnitures.length >= (i + 1));
+      const roomIdx = ROOM_ORDER.indexOf(activeR);
+      const isDeco = placedList.some(f => f.roomId === activeR) || (studentData.craftedFurnitures && studentData.craftedFurnitures.length >= (roomIdx + 1));
 
       if (isAllQ && isDeco) {
-        const nextR = nextMap[rId];
+        const nextR = nextMap[activeR];
         if (nextR && !unlockedRooms.includes(nextR)) {
           unlockedRooms.push(nextR);
         }
-      } else {
-        break;
       }
     }
 
@@ -701,16 +765,27 @@ window.App = (function () {
   function startGame() {
     showScreen('screen-game');
 
-    // 해금 상태 동기화
+    // 해금 및 이전 방 탈출 상태 동기화
     syncUnlockedRoomsFromProgress();
+
+    // 현재 진입해야 할 활성 방 확인 (이미 탈출한 이전 방 제외)
+    let spawnRoom = 'room_1';
+    for (let i = 0; i < ROOM_ORDER.length; i++) {
+      if (!escapedRooms.includes(ROOM_ORDER[i])) {
+        spawnRoom = ROOM_ORDER[i];
+        break;
+      }
+    }
 
     // 3D 씬 초기화 (최초 1회)
     if (!gameInitialized) {
       if (Game3D.loadPlacedFurnituresFromLocal) {
         Game3D.loadPlacedFurnituresFromLocal();
       }
-      Game3D.init('game-canvas-container');
+      Game3D.init('game-canvas-container', spawnRoom);
       gameInitialized = true;
+    } else {
+      Game3D.buildRoom(spawnRoom);
     }
 
     // 플레이어 스폰
@@ -719,16 +794,28 @@ window.App = (function () {
     // 상단 HUD 갱신
     updateHudInfo();
     updateRoomTabsLockState();
+    updateGoalRequirementDisplay();
 
     // 방 이동 탭 버튼 이벤트 바인딩
     const roomTabs = document.querySelectorAll('.room-tab');
     roomTabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const targetRoom = tab.dataset.room;
-        if (!unlockedRooms.includes(targetRoom)) {
-          showToast('🔒 아직 잠겨있는 방입니다! 현재 방의 미션을 먼저 해결/탈출해야 이동할 수 있습니다.', 3000);
+        const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
+        if (targetRoom === currentRoom) return;
+
+        // 이미 탈출 완료한 이전 방인 경우
+        if (escapedRooms.includes(targetRoom)) {
+          showToast(`🔒 이미 탈출 완료한 방(${roomConfigMap[targetRoom]?.name || targetRoom})입니다! 이전 방으로는 되돌아갈 수 없습니다.`, 3000);
           return;
         }
+
+        // 아직 잠겨있는 방인 경우
+        if (!unlockedRooms.includes(targetRoom)) {
+          showToast('🔒 아직 잠겨있는 방입니다! 현재 방의 미션을 먼저 탈출/해결해야 이동할 수 있습니다.', 3000);
+          return;
+        }
+
         switchRoom(targetRoom);
       });
     });
@@ -773,19 +860,40 @@ window.App = (function () {
 
   // 방 전환 공통 함수
   function switchRoom(targetRoomId) {
+    const currentRoom = Game3D.getCurrentRoomId ? Game3D.getCurrentRoomId() : 'room_1';
+    if (targetRoomId === currentRoom) return;
+
+    // 이미 탈출 완료한 이전 방인 경우 입장 금지
+    if (escapedRooms.includes(targetRoomId)) {
+      showToast(`🔒 이미 탈출 완료한 방(${roomConfigMap[targetRoomId]?.name || targetRoomId})입니다! 이전 방으로는 되돌아갈 수 없습니다.`, 3000);
+      return;
+    }
+
     if (!unlockedRooms.includes(targetRoomId)) {
       showToast('🔒 아직 잠겨있는 방입니다! 현재 방의 미션을 먼저 탈출/해결해야 입장할 수 있습니다.', 3000);
       return;
     }
-    const roomTabs = document.querySelectorAll('.room-tab');
-    roomTabs.forEach(t => {
-      if (t.dataset.room === targetRoomId) {
-        t.classList.add('active');
-      } else {
-        t.classList.remove('active');
+
+    // 다음 방으로 이동할 때, 대상 방보다 이전 방들을 모두 탈출 완료(폐쇄) 목록에 영구 추가
+    const targetIdx = ROOM_ORDER.indexOf(targetRoomId);
+    if (targetIdx > 0) {
+      for (let i = 0; i < targetIdx; i++) {
+        const prevRoom = ROOM_ORDER[i];
+        if (!escapedRooms.includes(prevRoom)) {
+          escapedRooms.push(prevRoom);
+        }
+        // unlockedRooms에서 이전 방 제거하여 재진입 완전 차단
+        unlockedRooms = unlockedRooms.filter(r => r !== prevRoom);
       }
-    });
+      saveEscapedRooms();
+    }
+
+    if (!unlockedRooms.includes(targetRoomId)) {
+      unlockedRooms.push(targetRoomId);
+    }
+
     Game3D.buildRoom(targetRoomId);
+    updateRoomTabsLockState();
     updateGoalRequirementDisplay();
   }
 
@@ -812,9 +920,14 @@ window.App = (function () {
       const nextRoomMap = { room_1: 'room_2', room_2: 'room_3', room_3: 'room_4' };
       const nextR = nextRoomMap[currentRoom];
       if (nextR) {
-        unlockRoom(nextR);
+        // 현재 방 탈출 완료 처리: 이전 방 영구 폐쇄
+        if (!escapedRooms.includes(currentRoom)) {
+          escapedRooms.push(currentRoom);
+          saveEscapedRooms();
+        }
+        unlockedRooms = [nextR];
         switchRoom(nextR);
-        showToast(`🚪 ${roomConfigMap[nextR].name}에 입장했습니다!`, 2500);
+        showToast(`🚪 ${roomConfigMap[currentRoom].name} 탈출 성공! ${roomConfigMap[nextR].name}에 입장했습니다! (이전 방은 폐쇄되었습니다)`, 3500);
       }
     }
   }
@@ -1267,9 +1380,13 @@ window.App = (function () {
         studentData.score = data.finalScore;
         updateHudInfo();
 
-        // 방 탈출 성공 시 모든 방 자유 탐험 가능하도록 전체 해금
-        unlockedRooms = ['room_1', 'room_2', 'room_3', 'room_4', 'room_5'];
+        // 4번 방까지 모든 탈출 방 완료 처리 -> 이전 방(1, 2, 3, 4) 모두 영구 폐쇄, 5번 힐링공원만 활성화
+        escapedRooms = ['room_1', 'room_2', 'room_3', 'room_4'];
+        unlockedRooms = ['room_5'];
+        saveEscapedRooms();
+        Game3D.buildRoom('room_5');
         updateRoomTabsLockState();
+        updateGoalRequirementDisplay();
 
         // 축하 폭죽 연출 (화려한 연속 폭죽)
         fireFireworks();
@@ -1417,11 +1534,23 @@ window.App = (function () {
     document.getElementById('btn-open-rank').addEventListener('click', openRankingModal);
 
     // 탈출 성공 모달 버튼들
+    const btnGoPark = document.getElementById('btn-success-go-park');
+    if (btnGoPark) {
+      btnGoPark.addEventListener('click', () => {
+        document.getElementById('modal-escape-success').classList.add('hidden');
+        switchRoom('room_5');
+        showToast('🌳 5번 힐링공원에 오신 것을 환영합니다! 자유롭게 휴식과 술래잡기를 즐겨보세요!', 3500);
+      });
+    }
+
     document.getElementById('btn-success-view-rank').addEventListener('click', () => {
       document.getElementById('modal-escape-success').classList.add('hidden');
       openRankingModal();
     });
     document.getElementById('btn-success-replay').addEventListener('click', () => {
+      try {
+        localStorage.removeItem(getStorageKey());
+      } catch (e) {}
       window.location.reload();
     });
   }

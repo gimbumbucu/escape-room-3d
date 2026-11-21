@@ -888,6 +888,41 @@ html {
   box-shadow: 0 2px 14px rgba(34, 197, 94, 0.55);
 }
 
+/* 이미 탈출한 이전 방 (폐쇄 및 되돌아가기 불가) */
+.room-tab.escaped {
+  opacity: 0.55 !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+  border: 1px dashed rgba(100, 116, 139, 0.4) !important;
+  filter: grayscale(80%);
+}
+
+.room-tab.escaped i {
+  color: #94a3b8 !important;
+  font-size: 11px;
+}
+
+.room-tab.escaped:hover {
+  background: rgba(100, 116, 139, 0.22) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.5) !important;
+  box-shadow: 0 0 10px rgba(100, 116, 139, 0.3) !important;
+}
+
+.tab-badge-escaped {
+  font-size: 10px;
+  background: rgba(100, 116, 139, 0.3);
+  color: #94a3b8;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 3px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  text-decoration: none !important;
+  display: inline-block;
+}
+
 /* 방 탈출/미션 미해결 시 잠금 상태 탭 */
 .room-tab.locked {
   opacity: 0.52;
