@@ -233,6 +233,7 @@ window.Game3D = (function() {
     trampolines = [];
     boosters = [];
     parkBoostTime = 0;
+    fountainData = null;
 
     // 조명 & 안개 & 배경 하늘 설정
     if (roomId === 'room_5') {
@@ -595,59 +596,280 @@ window.Game3D = (function() {
     roomGroup.add(pathEW);
   }
 
-  // 중앙 석조 분수대
+  // 5번 방 힐링 공원 실시간 분수대 물줄기 물리 시스템
+  let fountainData = null;
+
+  // 중앙 석조 분수대 (실시간 물 분출 & 폭포수 파티클)
   function createParkFountain(x, y, z) {
     const fGroup = new THREE.Group();
     fGroup.position.set(x, y, z);
 
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x64748b,
+      roughness: 0.65,
+      metalness: 0.1
+    });
+    const stoneTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      roughness: 0.5,
+      metalness: 0.2
+    });
 
-    // 1단 대형 수조
-    const outerBasin = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.6, 0.7, 32), stoneMat);
-    outerBasin.position.y = 0.35;
+    // 1단 대형 수조 (외벽 및 바닥)
+    const outerBasin = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 0.75, 36), stoneMat);
+    outerBasin.position.y = 0.375;
     outerBasin.castShadow = true;
     outerBasin.receiveShadow = true;
     fGroup.add(outerBasin);
 
-    // 반짝이는 물 표면
-    const waterGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 32);
+    // 1단 수조 상단 테두리 림 (고급스러운 원형 석조 마감)
+    const rimGeo = new THREE.TorusGeometry(2.7, 0.18, 12, 36);
+    const rimMesh = new THREE.Mesh(rimGeo, stoneTrimMat);
+    rimMesh.rotation.x = Math.PI / 2;
+    rimMesh.position.y = 0.75;
+    fGroup.add(rimMesh);
+
+    // 1단 수조 반짝이는 에메랄드 물 표면
+    const waterGeo = new THREE.CylinderGeometry(2.45, 2.45, 0.08, 36);
     const waterMat = new THREE.MeshStandardMaterial({
       color: 0x06b6d4,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.4,
-      roughness: 0.1,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.45,
+      roughness: 0.08,
+      metalness: 0.15,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.88
     });
-    const water = new THREE.Mesh(waterGeo, waterMat);
-    water.position.y = 0.65;
-    fGroup.add(water);
+    const lowerWater = new THREE.Mesh(waterGeo, waterMat);
+    lowerWater.position.y = 0.68;
+    fGroup.add(lowerWater);
 
-    // 2단 중앙 기둥 및 분수 노즐
-    const centerCol = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.65, 1.8, 16), stoneMat);
-    centerCol.position.y = 1.25;
+    // 수면 물결 파동 링 (Concentric Ripples)
+    const rippleList = [];
+    for (let r = 0; r < 3; r++) {
+      const ripGeo = new THREE.RingGeometry(0.5, 0.65, 32);
+      const ripMat = new THREE.MeshBasicMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      const ripMesh = new THREE.Mesh(ripGeo, ripMat);
+      ripMesh.rotation.x = -Math.PI / 2;
+      ripMesh.position.y = 0.70;
+      ripMesh.scale.set(0.4 + r * 0.5, 0.4 + r * 0.5, 1);
+      fGroup.add(ripMesh);
+      rippleList.push({ mesh: ripMesh, phase: r * 0.33 });
+    }
+
+    // 2단 중앙 석조 기둥 (우아한 곡선 기둥)
+    const centerCol = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 1.6, 20), stoneMat);
+    centerCol.position.y = 1.35;
     centerCol.castShadow = true;
     fGroup.add(centerCol);
 
-    const upperBasin = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.3, 0.4, 24), stoneMat);
-    upperBasin.position.y = 1.9;
+    // 2단 상단 수조 (중형 볼)
+    const upperBasin = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.45, 0.45, 24), stoneMat);
+    upperBasin.position.y = 2.05;
+    upperBasin.castShadow = true;
     fGroup.add(upperBasin);
 
-    // 분수대 물줄기 조각
-    const jetGeo = new THREE.ConeGeometry(0.4, 1.2, 16);
-    const jetMat = new THREE.MeshStandardMaterial({
-      color: 0x67e8f9,
-      emissive: 0x38bdf8,
-      emissiveIntensity: 0.7,
+    const upperWaterGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 24);
+    const upperWater = new THREE.Mesh(upperWaterGeo, waterMat);
+    upperWater.position.y = 2.24;
+    fGroup.add(upperWater);
+
+    // 3단 중앙 분수 첨탑 노즐 (Spire Nozzle)
+    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 0.8, 16), stoneTrimMat);
+    nozzle.position.y = 2.55;
+    fGroup.add(nozzle);
+
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), new THREE.MeshStandardMaterial({
+      color: 0xd97706,
+      metalness: 0.8,
+      roughness: 0.2
+    }));
+    tip.position.y = 2.95;
+    fGroup.add(tip);
+
+    // 상단 수조에서 하단으로 쏟아지는 8가닥 폭포 물줄기 (Cascading Waterfalls)
+    const cascadeList = [];
+    const cascadeCount = 8;
+    for (let c = 0; c < cascadeCount; c++) {
+      const angle = (c / cascadeCount) * Math.PI * 2;
+      const startRadius = 1.35;
+      const endRadius = 1.85;
+
+      const curve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(Math.cos(angle) * startRadius, 2.1, Math.sin(angle) * startRadius),
+        new THREE.Vector3(Math.cos(angle) * (startRadius + 0.35), 1.6, Math.sin(angle) * (startRadius + 0.35)),
+        new THREE.Vector3(Math.cos(angle) * endRadius, 0.72, Math.sin(angle) * endRadius)
+      );
+
+      const tubeGeo = new THREE.TubeGeometry(curve, 10, 0.045, 8, false);
+      const streamMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.6,
+        transparent: true,
+        opacity: 0.75,
+        roughness: 0.1
+      });
+      const streamMesh = new THREE.Mesh(tubeGeo, streamMat);
+      fGroup.add(streamMesh);
+      cascadeList.push(streamMesh);
+    }
+
+    // 솟구치는 물줄기 파티클 시스템 (280개 동적 물방울)
+    const particleCount = 280;
+    const pPositions = new Float32Array(particleCount * 3);
+    const pVelocities = [];
+    const nozzleHeight = 2.95;
+
+    for (let i = 0; i < particleCount; i++) {
+      const spreadAngle = Math.random() * Math.PI * 2;
+      const spreadRadius = Math.random() * 0.35 + 0.05;
+      const upwardSpeed = 3.6 + Math.random() * 2.2;
+      const outwardSpeed = 0.5 + Math.random() * 0.9;
+
+      pVelocities.push({
+        vx: Math.cos(spreadAngle) * outwardSpeed,
+        vy: upwardSpeed,
+        vz: Math.sin(spreadAngle) * outwardSpeed,
+        age: Math.random() * 1.5,
+        maxLife: 1.2 + Math.random() * 0.6
+      });
+
+      pPositions[i * 3] = Math.cos(spreadAngle) * spreadRadius;
+      pPositions[i * 3 + 1] = nozzleHeight + Math.random() * 0.5;
+      pPositions[i * 3 + 2] = Math.sin(spreadAngle) * spreadRadius;
+    }
+
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+
+    // 물방울 원형 텍스처 생성 (반짝이는 구체 캔버스 텍스처)
+    const dropCanvas = document.createElement('canvas');
+    dropCanvas.width = 32;
+    dropCanvas.height = 32;
+    const ctx = dropCanvas.getContext('2d');
+    const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.3, 'rgba(186, 230, 253, 0.9)');
+    grad.addColorStop(0.7, 'rgba(56, 189, 248, 0.5)');
+    grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 32, 32);
+
+    const dropTex = new THREE.CanvasTexture(dropCanvas);
+
+    const pMat = new THREE.PointsMaterial({
+      size: 0.16,
+      map: dropTex,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      color: 0xffffff
     });
-    const jet = new THREE.Mesh(jetGeo, jetMat);
-    jet.position.y = 2.6;
-    fGroup.add(jet);
+
+    const particles = new THREE.Points(pGeo, pMat);
+    fGroup.add(particles);
+
+    // 물빛 반사 포인트 라이트
+    const fLight = new THREE.PointLight(0x38bdf8, 1.2, 7);
+    fLight.position.set(0, 2.5, 0);
+    fGroup.add(fLight);
 
     roomGroup.add(fGroup);
-    addCircleCollider(x, z, 2.6);
+    addCircleCollider(x, z, 2.8);
+
+    fountainData = {
+      fGroup,
+      lowerWater,
+      upperWater,
+      rippleList,
+      cascadeList,
+      particles,
+      pPositions,
+      pVelocities,
+      particleCount,
+      nozzleHeight,
+      time: 0
+    };
+  }
+
+  // 매 프레임 물줄기 물리 시뮬레이션 및 수면 애니메이션
+  function updateFountainWater(delta) {
+    if (!fountainData || !fountainData.particles) return;
+
+    fountainData.time += delta;
+    const time = fountainData.time;
+
+    // 1. 수면 미세 일렁임 & 반짝임
+    if (fountainData.lowerWater) {
+      fountainData.lowerWater.position.y = 0.68 + Math.sin(time * 3.5) * 0.012;
+      fountainData.lowerWater.material.emissiveIntensity = 0.45 + Math.sin(time * 5.0) * 0.12;
+    }
+    if (fountainData.upperWater) {
+      fountainData.upperWater.position.y = 2.24 + Math.cos(time * 4.0) * 0.01;
+    }
+
+    // 2. 수면 파동 링 (Ripples)
+    if (fountainData.rippleList) {
+      fountainData.rippleList.forEach(r => {
+        let prog = (time * 0.7 + r.phase) % 1.0;
+        const scale = 0.5 + prog * 2.2;
+        r.mesh.scale.set(scale, scale, 1);
+        r.mesh.material.opacity = Math.max(0, (1.0 - prog) * 0.65);
+      });
+    }
+
+    // 3. 폭포수 물줄기 미세 진동
+    if (fountainData.cascadeList) {
+      fountainData.cascadeList.forEach((mesh, idx) => {
+        const s = 1.0 + Math.sin(time * 12.0 + idx * 0.8) * 0.08;
+        mesh.scale.set(s, 1.0, s);
+      });
+    }
+
+    // 4. 물줄기 파티클 포물선 물리 운동
+    const { pPositions, pVelocities, particleCount, nozzleHeight, particles } = fountainData;
+    const gravity = 8.5; // 중력 가속도
+
+    for (let i = 0; i < particleCount; i++) {
+      const v = pVelocities[i];
+      v.age += delta;
+
+      // 위치 갱신
+      pPositions[i * 3] += v.vx * delta;
+      pPositions[i * 3 + 1] += v.vy * delta;
+      pPositions[i * 3 + 2] += v.vz * delta;
+
+      // 중력 적용
+      v.vy -= gravity * delta;
+
+      // 수조 바닥에 닿았거나 수명이 다하면 노즐에서 재분출
+      if (pPositions[i * 3 + 1] < 0.72 || v.age >= v.maxLife) {
+        v.age = 0;
+        v.maxLife = 1.1 + Math.random() * 0.6;
+
+        const spreadAngle = Math.random() * Math.PI * 2;
+        const spreadRadius = Math.random() * 0.15;
+        const upwardSpeed = 3.8 + Math.random() * 2.4;
+        const outwardSpeed = 0.45 + Math.random() * 0.85;
+
+        v.vx = Math.cos(spreadAngle) * outwardSpeed;
+        v.vy = upwardSpeed;
+        v.vz = Math.sin(spreadAngle) * outwardSpeed;
+
+        pPositions[i * 3] = Math.cos(spreadAngle) * spreadRadius;
+        pPositions[i * 3 + 1] = nozzleHeight + Math.random() * 0.15;
+        pPositions[i * 3 + 2] = Math.sin(spreadAngle) * spreadRadius;
+      }
+    }
+
+    particles.geometry.attributes.position.needsUpdate = true;
   }
 
   // 울창한 공원 나무 생성 (술래잡기 엄폐물)
@@ -2669,6 +2891,11 @@ window.Game3D = (function() {
 
     // 2. 오브젝트 마커 애니메이션 & 플레이어 거리 체크
     checkNearbyInteractiveObjects();
+
+    // 3. 힐링 공원(Room 5) 분수대 물줄기 물리 시뮬레이션 및 잔물결 애니메이션
+    if (currentRoomId === 'room_5') {
+      updateFountainWater(delta);
+    }
 
     renderer.render(scene, camera);
   }
